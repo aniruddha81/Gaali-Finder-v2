@@ -1,18 +1,19 @@
 package com.aniruddha81.gaalifinderv2
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -20,6 +21,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.aniruddha81.gaalifinderv2.model.AudioFile
 
+@OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
 fun AudioCard(
     audioFile: AudioFile,
@@ -28,10 +30,34 @@ fun AudioCard(
     onDelete: () -> Unit,
     onShare: () -> Unit
 ) {
+    var showDialog by remember { mutableStateOf(false) }
+
+    if (showDialog) {
+        AlertDialog(
+            title = { Text(text = "Delete Audio?") },
+            text = { Text(text = "Are you sure to delete this audio?") },
+            onDismissRequest = { showDialog = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDelete()
+                    showDialog = false
+                }) {
+                    Text(text = "Delete")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDialog = false }) {
+                    Text(text = "Cancel")
+                }
+            }
+        )
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(8.dp)
+            .combinedClickable(onClick = {}, onLongClick = { showDialog = true }),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = remember { randomMaterial300Color() }
@@ -45,7 +71,7 @@ fun AudioCard(
         ) {
             // File Name
             Text(
-                text = audioFile.fileName,
+                text = audioFile.fileName.dropLast(4),
                 color = Color.Black,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
@@ -65,15 +91,16 @@ fun AudioCard(
                     onClick = onPlayStop,
                     modifier = Modifier
                         .size(36.dp)
-                        .background(
-                            color = if (isPlaying) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
-                            shape = CircleShape
-                        )
+//                        .background(
+//                            color = if (isPlaying) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+//                            shape = CircleShape
+//                        )
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Clear else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Stop" else "Play",
-                        tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+//                        tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                        tint = Color.Black,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -83,36 +110,38 @@ fun AudioCard(
                     onClick = onShare,
                     modifier = Modifier
                         .size(36.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
-                            shape = CircleShape
-                        )
+//                        .background(
+//                            color = MaterialTheme.colorScheme.tertiaryContainer,
+//                            shape = CircleShape
+//                        )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = "Share",
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+//                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                        tint = Color.Black,
                         modifier = Modifier.size(18.dp)
                     )
                 }
 
-                // Delete Button
+                /*// Delete Button
                 IconButton(
                     onClick = onDelete,
                     modifier = Modifier
                         .size(36.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.errorContainer,
-                            shape = CircleShape
-                        )
+//                        .background(
+//                            color = MaterialTheme.colorScheme.errorContainer,
+//                            shape = CircleShape
+//                        )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete",
-                        tint = MaterialTheme.colorScheme.onErrorContainer,
+//                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        tint = Color.Black,
                         modifier = Modifier.size(18.dp)
                     )
-                }
+                }*/
             }
         }
     }
