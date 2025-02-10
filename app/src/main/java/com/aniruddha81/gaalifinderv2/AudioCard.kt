@@ -1,6 +1,7 @@
 package com.aniruddha81.gaalifinderv2
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +32,7 @@ fun AudioCard(
     onShare: () -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    val cardColor = remember { randomMaterial300Color() }
 
     if (showDialog) {
         AlertDialog(
@@ -38,16 +40,20 @@ fun AudioCard(
             text = { Text(text = "Are you sure to delete this audio?") },
             onDismissRequest = { showDialog = false },
             confirmButton = {
-                TextButton(onClick = {
-                    onDelete()
-                    showDialog = false
-                }) {
+                Button(
+                    onClick = {
+                        onDelete()
+                        showDialog = false
+                    }, colors = ButtonDefaults.buttonColors(
+                        containerColor = cardColor
+                    )
+                ) {
                     Text(text = "Delete")
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showDialog = false }) {
-                    Text(text = "Cancel")
+                    Text(text = "Cancel", color = cardColor)
                 }
             }
         )
@@ -60,7 +66,7 @@ fun AudioCard(
             .combinedClickable(onClick = {}, onLongClick = { showDialog = true }),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
-            containerColor = remember { randomMaterial300Color() }
+            containerColor = cardColor
         ),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
@@ -75,7 +81,10 @@ fun AudioCard(
                 color = Color.Black,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier
+                    .padding(bottom = 8.dp)
+                    .fillMaxWidth()
+                    .basicMarquee()
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -154,7 +163,7 @@ fun randomMaterial300Color(): Color {
         Color(0xFFF48FB1),
         Color(0xFF42A5F5),
         Color(0xFF66BB6A),
-        Color(0xFFFFEE58),
+        Color(0xFFFFB300),
         Color(0xFFFF7043),
     )
     return materialColors300.random()

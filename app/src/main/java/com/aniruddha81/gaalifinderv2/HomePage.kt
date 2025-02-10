@@ -52,12 +52,6 @@ fun HomePage(viewModel: ViewModel) {
             val oldSize = audioFiles.size
             audioFiles = audioFiles + newFiles
 
-//            if (oldSize < audioFiles.size) {
-//                Toast.makeText(context, "New Audio Added", Toast.LENGTH_SHORT).show()
-//            } else if (oldSize == audioFiles.size) {
-//                Toast.makeText(context, "Already Exists", Toast.LENGTH_SHORT).show()
-//            }
-
             if (oldSize == audioFiles.size) {
                 Toast.makeText(context, "Already Exists", Toast.LENGTH_SHORT).show()
             }
@@ -141,7 +135,11 @@ fun HomePage(viewModel: ViewModel) {
                                 playingFile = null
                                 if (deleteFile(context, audioFile.fileName)) {
                                     audioFiles = audioFiles - audioFile
-                                    Toast.makeText(context, "Audio Deleted", Toast.LENGTH_SHORT)
+                                    Toast.makeText(
+                                        context,
+                                        "${audioFile.fileName.dropLast(4)} Deleted",
+                                        Toast.LENGTH_SHORT
+                                    )
                                         .show()
                                 } else {
                                     Toast.makeText(
@@ -187,7 +185,7 @@ fun saveFileToInternalStorage(context: Context, uri: Uri, fileName: String) {
             inputStream.copyTo(outputStream)
         }
     }
-    Toast.makeText(context, "New Audio Added", Toast.LENGTH_SHORT).show()
+    Toast.makeText(context, "${fileName.dropLast(4)} Added", Toast.LENGTH_SHORT).show()
 }
 
 fun deleteFile(context: Context, fileName: String): Boolean {
