@@ -5,6 +5,7 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
@@ -39,12 +40,30 @@ fun HomePage(viewModel: ViewModel) {
 
     val filePickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-            val newFiles = uris.map { uri ->
+            val newFiles = uris.mapNotNull { uri ->
                 val fileName = getFileNameFromUri(context, uri)
-                saveFileToInternalStorage(context, uri, fileName)
-                AudioFile(fileName, uri)
+
+                if (!fileExists(context, fileName)) {
+                    saveFileToInternalStorage(context, uri, fileName)
+                    AudioFile(fileName, uri)
+                } else null
+
             }
+            val oldSize = audioFiles.size
             audioFiles = audioFiles + newFiles
+
+//            if (oldSize < audioFiles.size) {
+//                Toast.makeText(context, "New Audio Added", Toast.LENGTH_SHORT).show()
+//            } else if (oldSize == audioFiles.size) {
+//                Toast.makeText(context, "Already Exists", Toast.LENGTH_SHORT).show()
+//            }
+
+            if (oldSize == audioFiles.size) {
+                Toast.makeText(context, "Already Exists", Toast.LENGTH_SHORT).show()
+            }
+
+//            toast for deletion is written in the delete function
+
         }
 
     Scaffold(
@@ -91,6 +110,7 @@ fun HomePage(viewModel: ViewModel) {
                 columns = GridCells.Adaptive(125.dp),
 //                contentPadding = PaddingValues(8.dp),
                 content = {
+
                     items(audioFiles) { audioFile ->
                         AudioCard(
                             audioFile = audioFile,
@@ -119,8 +139,18 @@ fun HomePage(viewModel: ViewModel) {
                                 mediaPlayer.value?.release()
                                 mediaPlayer.value = null
                                 playingFile = null
-                                deleteFile(context, audioFile.fileName)
-                                audioFiles = audioFiles - audioFile
+                                if (deleteFile(context, audioFile.fileName)) {
+                                    audioFiles = audioFiles - audioFile
+                                    Toast.makeText(context, "Audio Deleted", Toast.LENGTH_SHORT)
+                                        .show()
+                                } else {
+                                    Toast.makeText(
+                                        context,
+                                        "File Deletion Failed",
+                                        Toast.LENGTH_SHORT
+                                    )
+                                        .show()
+                                }
                             },
                             onShare = {
                                 shareAudioFile(context, audioFile.fileName)
@@ -136,6 +166,10 @@ fun HomePage(viewModel: ViewModel) {
     }
 }
 
+fun fileExists(context: Context, fileName: String): Boolean {
+    return File(context.filesDir, fileName).exists()
+}
+
 fun getFileNameFromUri(context: Context, uri: Uri): String {
     context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
         if (cursor.moveToFirst()) {
@@ -143,19 +177,21 @@ fun getFileNameFromUri(context: Context, uri: Uri): String {
             if (nameIndex != -1) return cursor.getString(nameIndex)
         }
     }
-    return "unknown_file.mp3"
+    return "unknown_audio.mp3"
 }
 
 fun saveFileToInternalStorage(context: Context, uri: Uri, fileName: String) {
+    val file = File(context.filesDir, fileName)
     context.contentResolver.openInputStream(uri)?.use { inputStream ->
-        File(context.filesDir, fileName).outputStream().use { outputStream ->
+        file.outputStream().use { outputStream ->
             inputStream.copyTo(outputStream)
         }
     }
+    Toast.makeText(context, "New Audio Added", Toast.LENGTH_SHORT).show()
 }
 
-fun deleteFile(context: Context, fileName: String) {
-    File(context.filesDir, fileName).takeIf { it.exists() }?.delete()
+fun deleteFile(context: Context, fileName: String): Boolean {
+    return File(context.filesDir, fileName).takeIf { it.exists() }?.delete() == true
 }
 
 fun shareAudioFile(context: Context, fileName: String) {
