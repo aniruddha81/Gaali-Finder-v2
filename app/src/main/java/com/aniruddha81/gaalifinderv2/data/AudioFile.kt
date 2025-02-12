@@ -1,6 +1,5 @@
 package com.aniruddha81.gaalifinderv2.data
 
-import android.net.Uri
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 

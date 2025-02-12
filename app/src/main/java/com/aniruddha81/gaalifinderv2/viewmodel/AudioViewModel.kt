@@ -2,6 +2,7 @@ package com.aniruddha81.gaalifinderv2.viewmodel
 
 import android.content.Context
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import com.aniruddha81.gaalifinderv2.data.AudioFile
 import com.aniruddha81.gaalifinderv2.data.AudioRepository
@@ -11,7 +12,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
-import java.io.InputStream
 
 class AudioViewModel(
     private val repository: AudioRepository,
@@ -24,11 +24,14 @@ class AudioViewModel(
     //    UI updates
     fun loadAudioFiles() {
         viewModelScope.launch {
-            _audioFiles.value = repository.getAudioFiles().value ?: emptyList()
+            repository.getAudioFiles().asFlow().collect { files ->
+                _audioFiles.value = files
+            }
         }
+
     }
 
-    fun addLocalAudio(fileName: String,byteArray: ByteArray) {
+    fun addLocalAudio(fileName: String, byteArray: ByteArray) {
         viewModelScope.launch {
             val inputStream = ByteArrayInputStream(byteArray)
             val path = FileStorageManager.saveAudioFile(context, fileName, inputStream)

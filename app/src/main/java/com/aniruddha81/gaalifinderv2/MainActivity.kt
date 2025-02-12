@@ -15,10 +15,7 @@ class MainActivity : ComponentActivity() {
 
         val database = AudioDatabase.getDatabase(this)
 
-        val repository = AudioRepository(
-            dao = database.audioDao(),
-            context = this
-        )
+        val repository = AudioRepository( dao = database.audioDao() )
 
         val viewModel = AudioViewModel(
             repository = repository,

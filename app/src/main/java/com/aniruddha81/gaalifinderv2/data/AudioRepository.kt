@@ -1,8 +1,6 @@
 package com.aniruddha81.gaalifinderv2.data
 
-import android.content.Context
-
-class AudioRepository(private val dao: AudioFileDao, private val context: Context) {
+class AudioRepository(private val dao: AudioFileDao) {
     fun getAudioFiles() = dao.getAllAudioFiles()
 
     //    adds audioFile in roomDB
@@ -18,7 +16,6 @@ class AudioRepository(private val dao: AudioFileDao, private val context: Contex
 
     //    deletes from roomDB
     suspend fun deleteAudioFile(audio: AudioFile) {
-//        FileStorageManager.deleteAudioFile(audio.path)
         dao.deleteAudioFile(audio)
     }
 }

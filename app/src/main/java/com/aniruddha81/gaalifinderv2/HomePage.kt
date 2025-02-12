@@ -47,23 +47,27 @@ fun HomePage(viewModel: AudioViewModel) {
         println("Audio files updated: ${audioFiles.size}")
     }
 
-
-//    var audioFiles by remember { mutableStateOf<List<AudioFile>>(emptyList()) }
     var mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
     var playingFile by remember { mutableStateOf<AudioFile?>(null) }
 
     val filePickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-//            val oldSize = audioFiles.size
 
-            /*val newFiles = */
             uris.mapNotNull { uri ->
                 val fileName = getFileNameFromUri(context, uri)
 
                 if (!audioFiles.any { it.fileName == fileName }) {
-                    context.contentResolver.openInputStream(uri)?.let { inputStream ->
-                        val byteArray = inputStream.readBytes()
-                        viewModel.addLocalAudio(fileName, byteArray)
+                    try {
+                        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                            val byteArray = inputStream.readBytes()
+                            viewModel.addLocalAudio(fileName, byteArray)
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            context,
+                            "Failed to read file: ${e.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
                     }
                 } else {
                     Toast.makeText(
@@ -71,10 +75,8 @@ fun HomePage(viewModel: AudioViewModel) {
                         "File already exists in internal storage",
                         Toast.LENGTH_SHORT
                     ).show()
-                    null
                 }
             }
-
         }
 
     Scaffold(
@@ -154,21 +156,7 @@ fun HomePage(viewModel: AudioViewModel) {
                                 mediaPlayer.value?.release()
                                 mediaPlayer.value = null
                                 playingFile = null
-//                                if (viewModel.deleteAudioFile( audioFile)) {
-//                                    Toast.makeText(
-//                                        context,
-//                                        "${audioFile.fileName.dropLast(4)} Deleted",
-//                                        Toast.LENGTH_SHORT
-//                                    )
-//                                        .show()
-//                                } else {
-//                                    Toast.makeText(
-//                                        context,
-//                                        "File Deletion Failed",
-//                                        Toast.LENGTH_SHORT
-//                                    )
-//                                        .show()
-//                                }
+
                                 try {
                                     viewModel.deleteAudioFile(audioFile)
                                     Toast.makeText(

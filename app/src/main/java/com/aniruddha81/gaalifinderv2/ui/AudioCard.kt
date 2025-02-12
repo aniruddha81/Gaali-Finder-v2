@@ -133,25 +133,6 @@ fun AudioCard(
                         modifier = Modifier.size(18.dp)
                     )
                 }
-
-                /*// Delete Button
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier
-                        .size(36.dp)
-//                        .background(
-//                            color = MaterialTheme.colorScheme.errorContainer,
-//                            shape = CircleShape
-//                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
-//                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                        tint = Color.Black,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }*/
             }
         }
     }
