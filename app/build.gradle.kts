@@ -58,13 +58,9 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation("io.appwrite:sdk-for-android:7.0.0")
-
     val room_version = "2.6.1"
 
     implementation("androidx.room:room-runtime:$room_version")
-
-    // If this project uses any Kotlin source, use Kotlin Symbol Processing (KSP)
-    // See Add the KSP plugin to your project
     ksp("androidx.room:room-compiler:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
 }
