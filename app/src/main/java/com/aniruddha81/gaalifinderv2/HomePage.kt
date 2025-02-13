@@ -5,16 +5,16 @@ import android.content.Intent
 import android.media.MediaPlayer
 import android.net.Uri
 import android.provider.OpenableColumns
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
@@ -22,11 +22,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import com.aniruddha81.gaalifinderv2.ui.AudioCard
 import com.aniruddha81.gaalifinderv2.data.AudioFile
+import com.aniruddha81.gaalifinderv2.ui.AudioCard
+import com.aniruddha81.gaalifinderv2.ui.MainAppBar
+import com.aniruddha81.gaalifinderv2.ui.SearchWidgetState
 import com.aniruddha81.gaalifinderv2.viewmodel.AudioViewModel
 import java.io.File
 
@@ -34,7 +35,14 @@ import java.io.File
 @Composable
 fun HomePage(viewModel: AudioViewModel) {
 
+    val searchWidgetState by viewModel.searchWidgetState
+    val searchTextState by viewModel.searchTextState
+
     val audioFiles by viewModel.audioFiles.collectAsState()
+
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val filteredAudioFiles by viewModel.filteredAudioFiles.collectAsState()
+
 
     LaunchedEffect(Unit) {
         viewModel.loadAudioFiles()
@@ -81,29 +89,51 @@ fun HomePage(viewModel: AudioViewModel) {
 
     Scaffold(
         topBar = {
-            TopAppBar(
-
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFF44336),
-                    titleContentColor = Color(0xFFE5D7D7),
-                ),
-                title = {
-                    Text(
-                        text = "Home",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
-                    )
+            MainAppBar(
+                searchWidgetState = searchWidgetState,
+                searchTextState = searchTextState,
+                onTextChange = {
+                    viewModel.updateSearchTextState(newValue = it)
                 },
-                actions = {
-                    IconButton(onClick = { /* Search Action */ }) {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = "Search",
-                            tint = Color.White
-                        )
-                    }
+                onCloseClicked = {
+                    viewModel.updateSearchWidgetState(newValue = SearchWidgetState.CLOSED)
+                },
+                onSearchClicked = {
+                    Log.d("Searched Text", it)
+                },
+                onSearchTriggered = {
+                    viewModel.updateSearchWidgetState(newValue = SearchWidgetState.OPENED)
                 }
             )
+            /*if (isSearching) {
+                OutlinedTextField(value = search, onValueChange = {search = it})
+            } else {
+
+                TopAppBar(
+
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color(0xFFF44336),
+                        titleContentColor = Color(0xFFE5D7D7),
+                    ),
+                    title = {
+                        Text(
+                            text = "Gaali Finder",
+                            fontWeight = FontWeight.Bold,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+                    },
+                    actions = {
+                        IconButton(onClick = { isSearching = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = "Search",
+                                tint = Color.White
+                            )
+                        }
+                    }
+                )
+            }*/
+
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -120,8 +150,8 @@ fun HomePage(viewModel: AudioViewModel) {
                 .fillMaxSize()
                 .padding(it)
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(125.dp),
+            LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Adaptive(125.dp),
 //                contentPadding = PaddingValues(8.dp),
                 content = {
 
@@ -211,3 +241,5 @@ fun shareAudioFile(context: Context, filePath: String) {
     }
     context.startActivity(Intent.createChooser(shareIntent, "Share Audio File"))
 }
+
+

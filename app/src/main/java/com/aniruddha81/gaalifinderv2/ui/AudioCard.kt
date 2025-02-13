@@ -86,8 +86,6 @@ fun AudioCard(
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .padding(bottom = 8.dp)
-                    .fillMaxWidth()
-                    .basicMarquee()
             )
 
             Spacer(modifier = Modifier.height(20.dp))
