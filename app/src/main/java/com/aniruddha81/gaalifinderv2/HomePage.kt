@@ -9,12 +9,11 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
@@ -22,11 +21,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import com.aniruddha81.gaalifinderv2.ui.AudioCard
 import com.aniruddha81.gaalifinderv2.data.AudioFile
+import com.aniruddha81.gaalifinderv2.ui.AudioCard
+import com.aniruddha81.gaalifinderv2.ui.MainAppBar
+import com.aniruddha81.gaalifinderv2.ui.SearchWidgetState
 import com.aniruddha81.gaalifinderv2.viewmodel.AudioViewModel
 import java.io.File
 
@@ -34,7 +34,14 @@ import java.io.File
 @Composable
 fun HomePage(viewModel: AudioViewModel) {
 
+    val searchWidgetState by viewModel.searchWidgetState
+
     val audioFiles by viewModel.audioFiles.collectAsState()
+
+//     search query vars
+    val searchQuery by viewModel.searchQuery.collectAsState()
+    val filteredAudioFiles by viewModel.filteredAudioFiles.collectAsState()
+
 
     LaunchedEffect(Unit) {
         viewModel.loadAudioFiles()
@@ -42,18 +49,13 @@ fun HomePage(viewModel: AudioViewModel) {
 
     val context = LocalContext.current
 
-    // Debugging: Log the audioFiles state
-    LaunchedEffect(audioFiles) {
-        println("Audio files updated: ${audioFiles.size}")
-    }
-
     var mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
     var playingFile by remember { mutableStateOf<AudioFile?>(null) }
 
     val filePickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
 
-            uris.mapNotNull { uri ->
+            val addedFiles = uris.mapNotNull { uri ->
                 val fileName = getFileNameFromUri(context, uri)
 
                 if (!audioFiles.any { it.fileName == fileName }) {
@@ -61,6 +63,7 @@ fun HomePage(viewModel: AudioViewModel) {
                         context.contentResolver.openInputStream(uri)?.use { inputStream ->
                             val byteArray = inputStream.readBytes()
                             viewModel.addLocalAudio(fileName, byteArray)
+                            fileName
                         }
                     } catch (e: Exception) {
                         Toast.makeText(
@@ -68,6 +71,7 @@ fun HomePage(viewModel: AudioViewModel) {
                             "Failed to read file: ${e.message}",
                             Toast.LENGTH_SHORT
                         ).show()
+                        null
                     }
                 } else {
                     Toast.makeText(
@@ -75,35 +79,33 @@ fun HomePage(viewModel: AudioViewModel) {
                         "File already exists in internal storage",
                         Toast.LENGTH_SHORT
                     ).show()
+                    null
                 }
+            }
+            if (addedFiles.size == 1) {
+                Toast.makeText(context, "${addedFiles[0]} added", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "${addedFiles.size} clips added", Toast.LENGTH_SHORT).show()
             }
         }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFFF44336),
-                    titleContentColor = Color(0xFFE5D7D7),
-                ),
-                title = {
-                    Text(
-                        text = "Home",
-                        fontWeight = FontWeight.Bold,
-                        style = MaterialTheme.typography.titleLarge
-                    )
+            MainAppBar(
+                searchWidgetState = searchWidgetState,
+                searchTextState = searchQuery,
+                onTextChange = {
+                    viewModel.updateSearchQuery(it)
                 },
-                actions = {
-                    IconButton(onClick = { /* Search Action */ }) {
-                        Icon(
-                            imageVector = Icons.Filled.Search,
-                            contentDescription = "Search",
-                            tint = Color.White
-                        )
-                    }
+                onCloseClicked = {
+                    viewModel.updateSearchQuery("")
+                    viewModel.updateSearchWidgetState(newValue = SearchWidgetState.CLOSED)
+                },
+                onSearchTriggered = {
+                    viewModel.updateSearchWidgetState(newValue = SearchWidgetState.OPENED)
                 }
             )
+
         },
         floatingActionButton = {
             FloatingActionButton(
@@ -120,12 +122,11 @@ fun HomePage(viewModel: AudioViewModel) {
                 .fillMaxSize()
                 .padding(it)
         ) {
-            LazyVerticalGrid(
-                columns = GridCells.Adaptive(125.dp),
-//                contentPadding = PaddingValues(8.dp),
+            LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Adaptive(125.dp),
                 content = {
 
-                    items(audioFiles) { audioFile ->
+                    items(filteredAudioFiles) { audioFile ->
                         AudioCard(
                             audioFile = audioFile,
                             isPlaying = playingFile == audioFile,
@@ -211,3 +212,5 @@ fun shareAudioFile(context: Context, filePath: String) {
     }
     context.startActivity(Intent.createChooser(shareIntent, "Share Audio File"))
 }
+
+
