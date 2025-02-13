@@ -63,7 +63,7 @@ fun AudioCard(
     Card(
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp)
+            .padding(4.dp)
             .combinedClickable(onClick = {}, onLongClick = { showDialog = true })
             .wrapContentHeight(),
         shape = RoundedCornerShape(12.dp),
@@ -75,7 +75,7 @@ fun AudioCard(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(12.dp)
         ) {
             // File Name
             Text(
@@ -84,7 +84,7 @@ fun AudioCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
-                    .padding(bottom = 8.dp)
+                    .padding(bottom = 6.dp)
             )
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -92,43 +92,49 @@ fun AudioCard(
             // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceAround,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Play/Stop Button
-                IconButton(
-                    onClick = onPlayStop,
+                Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(35.dp) // Reduced background size
                         .background(
-                            color = if (isPlaying) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                            color = if (isPlaying) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.secondaryContainer,
                             shape = CircleShape
-                        )
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = if (isPlaying) Icons.Default.Clear else Icons.Default.PlayArrow,
-                        contentDescription = if (isPlaying) "Stop" else "Play",
-                        tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(25.dp)
-                    )
+                    IconButton(onClick = onPlayStop) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Default.Clear else Icons.Default.PlayArrow,
+                            contentDescription = if (isPlaying) "Stop" else "Play",
+                            tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer
+                            else MaterialTheme.colorScheme.onSecondaryContainer,
+                            modifier = Modifier.size(25.dp) // Keep icon size unchanged
+                        )
+                    }
                 }
 
-                // Share Button
-                IconButton(
-                    onClick = onShare,
+                //      share button
+                Box(
                     modifier = Modifier
-                        .size(36.dp)
+                        .size(35.dp) // Reduced background size
                         .background(
                             color = MaterialTheme.colorScheme.tertiaryContainer,
                             shape = CircleShape
-                        )
+                        ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Share,
-                        contentDescription = "Share",
-                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.size(18.dp)
-                    )
+                    IconButton(onClick = onShare) {
+                        Icon(
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "Share",
+                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                            modifier = Modifier.size(18.dp) // Keep icon size unchanged
+                        )
+                    }
                 }
             }
         }

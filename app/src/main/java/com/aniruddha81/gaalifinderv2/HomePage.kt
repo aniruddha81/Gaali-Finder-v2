@@ -54,16 +54,25 @@ fun HomePage(viewModel: AudioViewModel) {
 
     val filePickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+            if (uris.isEmpty()) {
+                Toast.makeText(context, "No files selected", Toast.LENGTH_SHORT).show()
+                return@rememberLauncherForActivityResult
+            }
 
-            val addedFiles = uris.mapNotNull { uri ->
+            var existCount = 0
+            val addedFiles = mutableListOf<String>()
+
+            uris.forEach { uri ->
                 val fileName = getFileNameFromUri(context, uri)
 
-                if (!audioFiles.any { it.fileName == fileName }) {
+                if (audioFiles.any { it.fileName == fileName }) {
+                    existCount++
+                } else {
                     try {
                         context.contentResolver.openInputStream(uri)?.use { inputStream ->
                             val byteArray = inputStream.readBytes()
                             viewModel.addLocalAudio(fileName, byteArray)
-                            fileName
+                            addedFiles.add(fileName.dropLast(4)) // Removing extension for better UI
                         }
                     } catch (e: Exception) {
                         Toast.makeText(
@@ -71,23 +80,60 @@ fun HomePage(viewModel: AudioViewModel) {
                             "Failed to read file: ${e.message}",
                             Toast.LENGTH_SHORT
                         ).show()
-                        null
                     }
-                } else {
-                    Toast.makeText(
-                        context,
-                        "File already exists in internal storage",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    null
                 }
             }
-            if (addedFiles.size == 1) {
-                Toast.makeText(context, "${addedFiles[0]} added", Toast.LENGTH_SHORT).show()
-            } else {
-                Toast.makeText(context, "${addedFiles.size} clips added", Toast.LENGTH_SHORT).show()
+
+            // Handle different cases with correct messages
+            when {
+                addedFiles.isEmpty() && existCount == uris.size -> { // All selected files exist
+                    if (uris.size == 1) {
+                        Toast.makeText(context, "Selected file already exists", Toast.LENGTH_SHORT)
+                            .show()
+                    } else {
+                        Toast.makeText(
+                            context,
+                            "All selected files already exist",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+
+                addedFiles.isEmpty() -> { // No new files added (some failed or all exist)
+                    Toast.makeText(context, "No new files were added", Toast.LENGTH_SHORT).show()
+                }
+
+                existCount == 0 -> { // All files are new
+                    val message = if (addedFiles.size == 1) {
+                        "${addedFiles[0]} added"
+                    } else {
+                        "${addedFiles.size} files added"
+                    }
+                    Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                }
+
+                addedFiles.size == 1 && existCount == 1 -> { // One file added, one already existed
+                    Toast.makeText(
+                        context,
+                        "${addedFiles[0]} added, 1 file already exists",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+
+                addedFiles.size == 1 -> { // Only one file added
+                    Toast.makeText(context, "${addedFiles[0]} added", Toast.LENGTH_SHORT).show()
+                }
+
+                existCount > 0 -> { // Some files added, some existed
+                    Toast.makeText(
+                        context,
+                        "${addedFiles.size} clips added, $existCount already exist",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
         }
+
 
     Scaffold(
         topBar = {
@@ -120,10 +166,11 @@ fun HomePage(viewModel: AudioViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(start = 2.dp, end = 2.dp)
                 .padding(it)
         ) {
             LazyVerticalStaggeredGrid(
-                columns = StaggeredGridCells.Adaptive(125.dp),
+                columns = StaggeredGridCells.Adaptive(100.dp),
                 content = {
 
                     items(filteredAudioFiles) { audioFile ->
@@ -179,7 +226,7 @@ fun HomePage(viewModel: AudioViewModel) {
                         )
                     }
                     item {
-                        Spacer(Modifier.height(100.dp))
+                        Spacer(Modifier.height(500.dp))
                     }
                 }
             )
@@ -189,6 +236,7 @@ fun HomePage(viewModel: AudioViewModel) {
 
 
 fun getFileNameFromUri(context: Context, uri: Uri): String {
+
     context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
         if (cursor.moveToFirst()) {
             val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
@@ -201,7 +249,6 @@ fun getFileNameFromUri(context: Context, uri: Uri): String {
 fun shareAudioFile(context: Context, filePath: String) {
 
     val file = File(filePath)
-
     if (!file.exists()) return
 
     val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)

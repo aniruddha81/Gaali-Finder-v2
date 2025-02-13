@@ -121,20 +121,6 @@ fun SearchAppBar(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 },
-                trailingIcon = {
-                    IconButton(
-                        onClick = {
-                            onTextChange("")
-                            onCloseClicked()
-                        }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "Close Icon",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
                     onSearch = { keyboardController?.hide() }
@@ -148,13 +134,27 @@ fun SearchAppBar(
                 )
             )
         },
+        actions = {
+            IconButton(
+                onClick = {
+                    onTextChange("")
+                    onCloseClicked()
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close Icon",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = MaterialTheme.colorScheme.surface,
             titleContentColor = MaterialTheme.colorScheme.onSurface
         )
     )
 
-    // Request focus only if the SearchAppBar is newly opened
+    // Request focus when SearchAppBar opens
     val updatedKeyboardController = rememberUpdatedState(keyboardController)
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
