@@ -77,7 +77,7 @@ fun DefaultAppBar(
             Text(text = "Gaali Finder")
         },
         actions = {
-            IconButton(onClick = { onSearchClicked() }) {
+            IconButton(onClick = onSearchClicked) {
                 Icon(
                     imageVector = Icons.Filled.Search,
                     contentDescription = "Search Icon"
@@ -97,7 +97,6 @@ fun SearchAppBar(
     keyboardController: SoftwareKeyboardController?
 ) {
     TopAppBar(
-        modifier = Modifier.windowInsetsPadding(WindowInsets.statusBars),
         title = {
             TextField(
                 modifier = Modifier
@@ -128,11 +127,8 @@ fun SearchAppBar(
                 trailingIcon = {
                     IconButton(
                         onClick = {
-                            if (text.isNotEmpty()) {
-                                onTextChange("")
-                            } else {
-                                onCloseClicked()
-                            }
+                            onTextChange("")
+                            onCloseClicked()
                         }
                     ) {
                         Icon(

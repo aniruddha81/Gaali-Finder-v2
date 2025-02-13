@@ -49,18 +49,13 @@ fun HomePage(viewModel: AudioViewModel) {
 
     val context = LocalContext.current
 
-    // Debugging: Log the audioFiles state
-    LaunchedEffect(audioFiles) {
-        println("Audio files updated: ${audioFiles.size}")
-    }
-
     var mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
     var playingFile by remember { mutableStateOf<AudioFile?>(null) }
 
     val filePickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
 
-            uris.mapNotNull { uri ->
+            val addedFiles = uris.mapNotNull { uri ->
                 val fileName = getFileNameFromUri(context, uri)
 
                 if (!audioFiles.any { it.fileName == fileName }) {
@@ -68,6 +63,7 @@ fun HomePage(viewModel: AudioViewModel) {
                         context.contentResolver.openInputStream(uri)?.use { inputStream ->
                             val byteArray = inputStream.readBytes()
                             viewModel.addLocalAudio(fileName, byteArray)
+                            fileName
                         }
                     } catch (e: Exception) {
                         Toast.makeText(
@@ -75,6 +71,7 @@ fun HomePage(viewModel: AudioViewModel) {
                             "Failed to read file: ${e.message}",
                             Toast.LENGTH_SHORT
                         ).show()
+                        null
                     }
                 } else {
                     Toast.makeText(
@@ -82,7 +79,13 @@ fun HomePage(viewModel: AudioViewModel) {
                         "File already exists in internal storage",
                         Toast.LENGTH_SHORT
                     ).show()
+                    null
                 }
+            }
+            if (addedFiles.size == 1) {
+                Toast.makeText(context, "${addedFiles[0]} added", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(context, "${addedFiles.size} clips added", Toast.LENGTH_SHORT).show()
             }
         }
 

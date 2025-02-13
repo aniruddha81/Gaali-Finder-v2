@@ -35,15 +35,20 @@ class AudioViewModel(
         _searchWidgetState.value = newValue
     }
 
+    //    search query state
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery = _searchQuery.asStateFlow()
+
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
     /*---------------appbar vars ends-------------*/
 
 
     private val _audioFiles = MutableStateFlow<List<AudioFile>>(emptyList())
     val audioFiles = _audioFiles.asStateFlow()
 
-    //    search query state
-    private val _searchQuery = MutableStateFlow("")
-    val searchQuery = _searchQuery.asStateFlow()
 
     //    filtered list
     val filteredAudioFiles = searchQuery.combine(audioFiles) { query, files ->
@@ -51,9 +56,6 @@ class AudioViewModel(
         else files.filter { it.fileName.contains(query, ignoreCase = true) }
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
-    fun updateSearchQuery(query: String) {
-        _searchQuery.value = query
-    }
 
     //    UI updates
     fun loadAudioFiles() {
