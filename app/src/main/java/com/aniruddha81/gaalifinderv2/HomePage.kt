@@ -25,44 +25,64 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
-import androidx.lifecycle.ViewModel
-import com.aniruddha81.gaalifinderv2.model.AudioFile
+import com.aniruddha81.gaalifinderv2.ui.AudioCard
+import com.aniruddha81.gaalifinderv2.data.AudioFile
+import com.aniruddha81.gaalifinderv2.viewmodel.AudioViewModel
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomePage(viewModel: ViewModel) {
+fun HomePage(viewModel: AudioViewModel) {
+
+    val audioFiles by viewModel.audioFiles.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadAudioFiles()
+    }
+
     val context = LocalContext.current
 
-    var audioFiles by remember { mutableStateOf<List<AudioFile>>(emptyList()) }
+    // Debugging: Log the audioFiles state
+    LaunchedEffect(audioFiles) {
+        println("Audio files updated: ${audioFiles.size}")
+    }
+
     var mediaPlayer = remember { mutableStateOf<MediaPlayer?>(null) }
     var playingFile by remember { mutableStateOf<AudioFile?>(null) }
 
     val filePickerLauncher =
         rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
-            val newFiles = uris.mapNotNull { uri ->
+
+            uris.mapNotNull { uri ->
                 val fileName = getFileNameFromUri(context, uri)
 
-                if (!fileExists(context, fileName)) {
-                    saveFileToInternalStorage(context, uri, fileName)
-                    AudioFile(fileName, uri)
-                } else null
-
+                if (!audioFiles.any { it.fileName == fileName }) {
+                    try {
+                        context.contentResolver.openInputStream(uri)?.use { inputStream ->
+                            val byteArray = inputStream.readBytes()
+                            viewModel.addLocalAudio(fileName, byteArray)
+                        }
+                    } catch (e: Exception) {
+                        Toast.makeText(
+                            context,
+                            "Failed to read file: ${e.message}",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                } else {
+                    Toast.makeText(
+                        context,
+                        "File already exists in internal storage",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
             }
-            val oldSize = audioFiles.size
-            audioFiles = audioFiles + newFiles
-
-            if (oldSize == audioFiles.size) {
-                Toast.makeText(context, "Already Exists", Toast.LENGTH_SHORT).show()
-            }
-
-//            toast for deletion is written in the delete function
-
         }
 
     Scaffold(
         topBar = {
             TopAppBar(
+
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = Color(0xFFF44336),
                     titleContentColor = Color(0xFFE5D7D7),
@@ -113,7 +133,10 @@ fun HomePage(viewModel: ViewModel) {
                                 if (playingFile != audioFile) {
                                     mediaPlayer.value?.release()
                                     mediaPlayer.value = MediaPlayer().apply {
-                                        setDataSource(context, audioFile.uri)
+
+                                        val uri = Uri.parse(audioFile.path)
+
+                                        setDataSource(context, uri)
                                         prepare()
                                         start()
 
@@ -133,25 +156,24 @@ fun HomePage(viewModel: ViewModel) {
                                 mediaPlayer.value?.release()
                                 mediaPlayer.value = null
                                 playingFile = null
-                                if (deleteFile(context, audioFile.fileName)) {
-                                    audioFiles = audioFiles - audioFile
+
+                                try {
+                                    viewModel.deleteAudioFile(audioFile)
                                     Toast.makeText(
                                         context,
                                         "${audioFile.fileName.dropLast(4)} Deleted",
                                         Toast.LENGTH_SHORT
-                                    )
-                                        .show()
-                                } else {
+                                    ).show()
+                                } catch (e: Exception) {
                                     Toast.makeText(
                                         context,
-                                        "File Deletion Failed",
+                                        "File Deletion Failed: ${e.message}",
                                         Toast.LENGTH_SHORT
-                                    )
-                                        .show()
+                                    ).show()
                                 }
                             },
                             onShare = {
-                                shareAudioFile(context, audioFile.fileName)
+                                shareAudioFile(context, audioFile.path)
                             }
                         )
                     }
@@ -164,9 +186,6 @@ fun HomePage(viewModel: ViewModel) {
     }
 }
 
-fun fileExists(context: Context, fileName: String): Boolean {
-    return File(context.filesDir, fileName).exists()
-}
 
 fun getFileNameFromUri(context: Context, uri: Uri): String {
     context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
@@ -178,25 +197,13 @@ fun getFileNameFromUri(context: Context, uri: Uri): String {
     return "unknown_audio.mp3"
 }
 
-fun saveFileToInternalStorage(context: Context, uri: Uri, fileName: String) {
-    val file = File(context.filesDir, fileName)
-    context.contentResolver.openInputStream(uri)?.use { inputStream ->
-        file.outputStream().use { outputStream ->
-            inputStream.copyTo(outputStream)
-        }
-    }
-    Toast.makeText(context, "${fileName.dropLast(4)} Added", Toast.LENGTH_SHORT).show()
-}
+fun shareAudioFile(context: Context, filePath: String) {
 
-fun deleteFile(context: Context, fileName: String): Boolean {
-    return File(context.filesDir, fileName).takeIf { it.exists() }?.delete() == true
-}
+    val file = File(filePath)
 
-fun shareAudioFile(context: Context, fileName: String) {
-    val file = File(context.filesDir, fileName)
     if (!file.exists()) return
 
-    val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileProvider", file)
+    val uri = FileProvider.getUriForFile(context, "${context.packageName}.provider", file)
     val shareIntent = Intent(Intent.ACTION_SEND).apply {
         type = "audio/mpeg"
         putExtra(Intent.EXTRA_STREAM, uri)

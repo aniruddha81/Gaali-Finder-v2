@@ -1,10 +1,12 @@
-package com.aniruddha81.gaalifinderv2
+package com.aniruddha81.gaalifinderv2.ui
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Clear
@@ -20,7 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.aniruddha81.gaalifinderv2.model.AudioFile
+import com.aniruddha81.gaalifinderv2.data.AudioFile
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -61,9 +63,10 @@ fun AudioCard(
 
     Card(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .padding(8.dp)
-            .combinedClickable(onClick = {}, onLongClick = { showDialog = true }),
+            .combinedClickable(onClick = {}, onLongClick = { showDialog = true })
+            .wrapContentHeight(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
             containerColor = cardColor
@@ -100,17 +103,16 @@ fun AudioCard(
                     onClick = onPlayStop,
                     modifier = Modifier
                         .size(36.dp)
-//                        .background(
-//                            color = if (isPlaying) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
-//                            shape = CircleShape
-//                        )
+                        .background(
+                            color = if (isPlaying) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.secondaryContainer,
+                            shape = CircleShape
+                        )
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Clear else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Stop" else "Play",
-//                        tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
-                        tint = Color.Black,
-                        modifier = Modifier.size(18.dp)
+                        tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.size(25.dp)
                     )
                 }
 
@@ -119,38 +121,18 @@ fun AudioCard(
                     onClick = onShare,
                     modifier = Modifier
                         .size(36.dp)
-//                        .background(
-//                            color = MaterialTheme.colorScheme.tertiaryContainer,
-//                            shape = CircleShape
-//                        )
+                        .background(
+                            color = MaterialTheme.colorScheme.tertiaryContainer,
+                            shape = CircleShape
+                        )
                 ) {
                     Icon(
                         imageVector = Icons.Default.Share,
                         contentDescription = "Share",
-//                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                        tint = Color.Black,
+                        tint = MaterialTheme.colorScheme.onTertiaryContainer,
                         modifier = Modifier.size(18.dp)
                     )
                 }
-
-                /*// Delete Button
-                IconButton(
-                    onClick = onDelete,
-                    modifier = Modifier
-                        .size(36.dp)
-//                        .background(
-//                            color = MaterialTheme.colorScheme.errorContainer,
-//                            shape = CircleShape
-//                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Delete",
-//                        tint = MaterialTheme.colorScheme.onErrorContainer,
-                        tint = Color.Black,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }*/
             }
         }
     }
