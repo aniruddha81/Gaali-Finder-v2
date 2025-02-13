@@ -43,7 +43,6 @@ fun MainAppBar(
     searchTextState: String,
     onTextChange: (String) -> Unit,
     onCloseClicked: () -> Unit,
-    onSearchClicked: (String) -> Unit,
     onSearchTriggered: () -> Unit
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -61,7 +60,6 @@ fun MainAppBar(
                 text = searchTextState,
                 onTextChange = onTextChange,
                 onCloseClicked = onCloseClicked,
-                onSearchClicked = onSearchClicked,
                 focusRequester = focusRequester,
                 keyboardController = keyboardController
             )
@@ -95,7 +93,6 @@ fun SearchAppBar(
     text: String,
     onTextChange: (String) -> Unit,
     onCloseClicked: () -> Unit,
-    onSearchClicked: (String) -> Unit,
     focusRequester: FocusRequester,
     keyboardController: SoftwareKeyboardController?
 ) {
