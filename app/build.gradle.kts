@@ -64,4 +64,6 @@ dependencies {
     ksp("androidx.room:room-compiler:$room_version")
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
+    implementation("io.appwrite:sdk-for-android:7.0.0")
+
 }

@@ -18,6 +18,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -167,69 +168,83 @@ fun HomePage(viewModel: AudioViewModel) {
             modifier = Modifier
                 .fillMaxSize()
                 .padding(start = 2.dp, end = 2.dp)
-                .padding(it)
-        ) {
-            LazyVerticalStaggeredGrid(
-                columns = StaggeredGridCells.Adaptive(100.dp),
-                content = {
+                .padding(it),
 
-                    items(filteredAudioFiles) { audioFile ->
-                        AudioCard(
-                            audioFile = audioFile,
-                            isPlaying = playingFile == audioFile,
-                            onPlayStop = {
-                                if (playingFile != audioFile) {
-                                    mediaPlayer.value?.release()
-                                    mediaPlayer.value = MediaPlayer().apply {
+            ) {
+            if (filteredAudioFiles.isEmpty()) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "No audio files found",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    )
+                }
+            } else {
+                LazyVerticalStaggeredGrid(
+                    columns = StaggeredGridCells.Adaptive(100.dp),
+                    content = {
 
-                                        val uri = Uri.parse(audioFile.path)
+                        items(filteredAudioFiles) { audioFile ->
+                            AudioCard(
+                                audioFile = audioFile,
+                                isPlaying = playingFile == audioFile,
+                                onPlayStop = {
+                                    if (playingFile != audioFile) {
+                                        mediaPlayer.value?.release()
+                                        mediaPlayer.value = MediaPlayer().apply {
 
-                                        setDataSource(context, uri)
-                                        prepare()
-                                        start()
+                                            val uri = Uri.parse(audioFile.path)
 
-                                        setOnCompletionListener {
-                                            playingFile = null
+                                            setDataSource(context, uri)
+                                            prepare()
+                                            start()
+
+                                            setOnCompletionListener {
+                                                playingFile = null
+                                            }
                                         }
-                                    }
-                                    playingFile = audioFile
+                                        playingFile = audioFile
 
-                                } else {
+                                    } else {
+                                        mediaPlayer.value?.release()
+                                        mediaPlayer.value = null
+                                        playingFile = null
+                                    }
+                                },
+                                onDelete = {
                                     mediaPlayer.value?.release()
                                     mediaPlayer.value = null
                                     playingFile = null
-                                }
-                            },
-                            onDelete = {
-                                mediaPlayer.value?.release()
-                                mediaPlayer.value = null
-                                playingFile = null
 
-                                try {
-                                    viewModel.deleteAudioFile(audioFile)
-                                    Toast.makeText(
-                                        context,
-                                        "${audioFile.fileName.dropLast(4)} Deleted",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                } catch (e: Exception) {
-                                    Toast.makeText(
-                                        context,
-                                        "File Deletion Failed: ${e.message}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    try {
+                                        viewModel.deleteAudioFile(audioFile)
+                                        Toast.makeText(
+                                            context,
+                                            "${audioFile.fileName.dropLast(4)} Deleted",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    } catch (e: Exception) {
+                                        Toast.makeText(
+                                            context,
+                                            "File Deletion Failed: ${e.message}",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                },
+                                onShare = {
+                                    shareAudioFile(context, audioFile.path)
                                 }
-                            },
-                            onShare = {
-                                shareAudioFile(context, audioFile.path)
-                            }
-                        )
+                            )
+                        }
+                        item {
+                            Spacer(Modifier.height(500.dp))
+                        }
                     }
-                    item {
-                        Spacer(Modifier.height(500.dp))
-                    }
-                }
-            )
+                )
+            }
         }
     }
 }

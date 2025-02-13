@@ -12,9 +12,12 @@ interface AudioFileDao {
     @Query("SELECT * FROM audio_files")
     fun getAllAudioFiles(): LiveData<List<AudioFile>>
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertAudioFile(audioFile: AudioFile)
 
     @Delete
     suspend fun deleteAudioFile(audioFile: AudioFile)
+
+    @Query("SELECT fileName FROM audio_files")
+    suspend fun getStoredFilenames(): List<String>
 }
