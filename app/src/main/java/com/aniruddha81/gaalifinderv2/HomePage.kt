@@ -36,10 +36,10 @@ import java.io.File
 fun HomePage(viewModel: AudioViewModel) {
 
     val searchWidgetState by viewModel.searchWidgetState
-    val searchTextState by viewModel.searchTextState
 
     val audioFiles by viewModel.audioFiles.collectAsState()
 
+//     search query vars
     val searchQuery by viewModel.searchQuery.collectAsState()
     val filteredAudioFiles by viewModel.filteredAudioFiles.collectAsState()
 
@@ -91,11 +91,12 @@ fun HomePage(viewModel: AudioViewModel) {
         topBar = {
             MainAppBar(
                 searchWidgetState = searchWidgetState,
-                searchTextState = searchTextState,
+                searchTextState = searchQuery,
                 onTextChange = {
-                    viewModel.updateSearchTextState(newValue = it)
+                    viewModel.updateSearchQuery(it)
                 },
                 onCloseClicked = {
+                    viewModel.updateSearchQuery("")
                     viewModel.updateSearchWidgetState(newValue = SearchWidgetState.CLOSED)
                 },
                 onSearchClicked = {
@@ -105,34 +106,6 @@ fun HomePage(viewModel: AudioViewModel) {
                     viewModel.updateSearchWidgetState(newValue = SearchWidgetState.OPENED)
                 }
             )
-            /*if (isSearching) {
-                OutlinedTextField(value = search, onValueChange = {search = it})
-            } else {
-
-                TopAppBar(
-
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFFF44336),
-                        titleContentColor = Color(0xFFE5D7D7),
-                    ),
-                    title = {
-                        Text(
-                            text = "Gaali Finder",
-                            fontWeight = FontWeight.Bold,
-                            style = MaterialTheme.typography.titleLarge
-                        )
-                    },
-                    actions = {
-                        IconButton(onClick = { isSearching = true }) {
-                            Icon(
-                                imageVector = Icons.Filled.Search,
-                                contentDescription = "Search",
-                                tint = Color.White
-                            )
-                        }
-                    }
-                )
-            }*/
 
         },
         floatingActionButton = {
@@ -152,10 +125,9 @@ fun HomePage(viewModel: AudioViewModel) {
         ) {
             LazyVerticalStaggeredGrid(
                 columns = StaggeredGridCells.Adaptive(125.dp),
-//                contentPadding = PaddingValues(8.dp),
                 content = {
 
-                    items(audioFiles) { audioFile ->
+                    items(filteredAudioFiles) { audioFile ->
                         AudioCard(
                             audioFile = audioFile,
                             isPlaying = playingFile == audioFile,

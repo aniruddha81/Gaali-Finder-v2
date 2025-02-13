@@ -121,16 +121,12 @@ fun SearchAppBar(
                 ),
                 singleLine = true,
                 leadingIcon = {
-                    IconButton(
+                    Icon(
                         modifier = Modifier.alpha(0.5f),
-                        onClick = { onSearchClicked(text) }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search Icon",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search Icon",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 },
                 trailingIcon = {
                     IconButton(
@@ -151,7 +147,7 @@ fun SearchAppBar(
                 },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
                 keyboardActions = KeyboardActions(
-                    onSearch = { onSearchClicked(text) }
+                    onSearch = { keyboardController?.hide() }
                 ),
                 colors = TextFieldDefaults.colors(
                     unfocusedContainerColor = Color.Transparent,
