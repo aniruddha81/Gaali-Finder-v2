@@ -167,92 +167,106 @@ fun HomePage(viewModel: AudioViewModel) {
             }
         }
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(start = 2.dp, end = 2.dp)
-                .padding(it),
+                .padding(it)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 2.dp, end = 2.dp),
 
-            ) {
-            if (filteredAudioFiles.isEmpty()) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = "No audio files found",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    )
-                }
-            } else {
-                LazyVerticalStaggeredGrid(
-                    columns = StaggeredGridCells.Adaptive(100.dp),
-                    content = {
+                if (filteredAudioFiles.isEmpty()) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No audio files found",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        )
+                    }
+                } else {
+                    LazyVerticalStaggeredGrid(
+                        columns = StaggeredGridCells.Adaptive(100.dp),
+                        content = {
 
-                        items(filteredAudioFiles) { audioFile ->
-                            AudioCard(
-                                audioFile = audioFile,
-                                isPlaying = playingFile == audioFile,
-                                onPlayStop = {
-                                    if (playingFile != audioFile) {
-                                        mediaPlayer.value?.release()
-                                        mediaPlayer.value = MediaPlayer().apply {
+                            items(filteredAudioFiles) { audioFile ->
+                                AudioCard(
+                                    audioFile = audioFile,
+                                    isPlaying = playingFile == audioFile,
+                                    onPlayStop = {
+                                        if (playingFile != audioFile) {
+                                            mediaPlayer.value?.release()
+                                            mediaPlayer.value = MediaPlayer().apply {
 
-                                            val uri = Uri.parse(audioFile.path)
+                                                val uri = Uri.parse(audioFile.path)
 
-                                            setDataSource(context, uri)
-                                            prepare()
-                                            start()
+                                                setDataSource(context, uri)
+                                                prepare()
+                                                start()
 
-                                            setOnCompletionListener {
-                                                playingFile = null
+                                                setOnCompletionListener {
+                                                    playingFile = null
+                                                }
                                             }
-                                        }
-                                        playingFile = audioFile
+                                            playingFile = audioFile
 
-                                    } else {
+                                        } else {
+                                            mediaPlayer.value?.release()
+                                            mediaPlayer.value = null
+                                            playingFile = null
+                                        }
+                                    },
+                                    onDelete = {
                                         mediaPlayer.value?.release()
                                         mediaPlayer.value = null
                                         playingFile = null
-                                    }
-                                },
-                                onDelete = {
-                                    mediaPlayer.value?.release()
-                                    mediaPlayer.value = null
-                                    playingFile = null
 
-                                    try {
-                                        viewModel.deleteAudioFile(audioFile)
-                                        Toast.makeText(
-                                            context,
-                                            "${audioFile.fileName.dropLast(4)} Deleted",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
-                                    } catch (e: Exception) {
-                                        Toast.makeText(
-                                            context,
-                                            "File Deletion Failed: ${e.message}",
-                                            Toast.LENGTH_SHORT
-                                        ).show()
+                                        try {
+                                            viewModel.deleteAudioFile(audioFile)
+                                            Toast.makeText(
+                                                context,
+                                                "${audioFile.fileName.dropLast(4)} Deleted",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        } catch (e: Exception) {
+                                            Toast.makeText(
+                                                context,
+                                                "File Deletion Failed: ${e.message}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    },
+                                    onShare = {
+                                        shareAudioFile(context, audioFile.path)
                                     }
-                                },
-                                onShare = {
-                                    shareAudioFile(context, audioFile.path)
-                                }
-                            )
+                                )
+                            }
+                            item {
+                                Spacer(Modifier.height(500.dp))
+                            }
                         }
-                        item {
-                            Spacer(Modifier.height(500.dp))
+                    )
+                    DisposableEffect(Unit) {
+                        onDispose {
+                            mediaPlayer.value?.release()
                         }
-                    }
-                )
-                DisposableEffect(Unit) {
-                    onDispose {
-                        mediaPlayer.value?.release()
                     }
                 }
             }
+            Text(
+                text = "Aniruddha Roy",
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(8.dp),
+                style = MaterialTheme.typography.bodySmall.copy(
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                )
+            )
         }
     }
 }
