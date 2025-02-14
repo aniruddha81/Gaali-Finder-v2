@@ -4,9 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.aniruddha81.gaalifinderv2.appwrite.AppwriteRepository
-import com.aniruddha81.gaalifinderv2.data.AudioDatabase
-import com.aniruddha81.gaalifinderv2.data.AudioRepository
 import com.aniruddha81.gaalifinderv2.ui.theme.GaaliFinderv2Theme
 import com.aniruddha81.gaalifinderv2.viewmodel.AudioViewModel
 
@@ -14,18 +11,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val database = AudioDatabase.getDatabase(this)
-        val dao = database.audioDao()
-
-        val audioRepository = AudioRepository(dao)
-
-        val appwriteRepository = AppwriteRepository(applicationContext,dao)
-
-        val viewModel = AudioViewModel(
-            audioRepository = audioRepository,
-            appwriteRepository = appwriteRepository,
-            context = this
-        )
+        val viewModel = AudioViewModel(this)
 
         enableEdgeToEdge()
         setContent {

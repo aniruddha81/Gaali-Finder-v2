@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aniruddha81.gaalifinderv2.appwrite.AppwriteRepository
+import com.aniruddha81.gaalifinderv2.data.AudioDatabase
 import com.aniruddha81.gaalifinderv2.data.AudioFile
 import com.aniruddha81.gaalifinderv2.data.AudioRepository
 import com.aniruddha81.gaalifinderv2.data.FileStorageManager
@@ -20,11 +21,21 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 
 
-class AudioViewModel(
-    private val audioRepository: AudioRepository,
-    private val appwriteRepository: AppwriteRepository,
-    private val context: Context
-) : ViewModel() {
+class AudioViewModel(private val context: Context) : ViewModel() {
+
+    private val audioRepository: AudioRepository
+    private val appwriteRepository: AppwriteRepository
+
+    init {
+        val database = AudioDatabase.getDatabase(context)
+        val dao = database.audioDao()
+        audioRepository = AudioRepository(dao)
+        appwriteRepository = AppwriteRepository(context, dao)
+
+        viewModelScope.launch {
+            appwriteRepository.fetchAudioFiles(context)
+        }
+    }
 
     /*------------ appbar vars starts -----------*/
 
@@ -51,11 +62,11 @@ class AudioViewModel(
     val audioFiles = _audioFiles.asStateFlow()
 
 
-    init {
-        viewModelScope.launch {
-            appwriteRepository.fetchAudioFiles(context)
-        }
-    }
+//    init {
+//        viewModelScope.launch {
+//            appwriteRepository.fetchAudioFiles(context)
+//        }
+//    }
 
     //    filtered list
     val filteredAudioFiles = searchQuery.combine(audioFiles) { query, files ->
