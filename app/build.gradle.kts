@@ -21,7 +21,7 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -58,12 +58,13 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    val room_version = "2.6.1"
-
     implementation(libs.androidx.room.runtime)
-    ksp("androidx.room:room-compiler:$room_version")
+    ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
     implementation("io.appwrite:sdk-for-android:7.0.0")
+    implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.paging.runtime.ktx)
+
 
 }

@@ -3,6 +3,7 @@ package com.aniruddha81.gaalifinderv2.appwrite
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
+import com.aniruddha81.gaalifinderv2.Constants
 import com.aniruddha81.gaalifinderv2.data.AudioFile
 import com.aniruddha81.gaalifinderv2.data.AudioFileDao
 import com.aniruddha81.gaalifinderv2.data.FileStorageManager
@@ -14,10 +15,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 
-class AppwriteRepository(context: Context,val dao: AudioFileDao) {
+class AppwriteRepository(context: Context, val dao: AudioFileDao) {
     private val client = Client(context)
         .setEndpoint("https://cloud.appwrite.io/v1")
-        .setProject("<APPWRITE_PROJECT_ID>")
+        .setProject(Constants.APPWRITE_PROJECT_ID)
 
     private val storage = Storage(client)
     private val account = Account(client)
@@ -38,14 +39,13 @@ class AppwriteRepository(context: Context,val dao: AudioFileDao) {
 
     suspend fun fetchAudioFiles(context: Context) {
         if (!isInternetAvailable(context)) return
-        val BUCKET_ID ="<APPWRITE_BUCKETID>"
 
         val storedFiles = dao.getStoredFilenames().toSet()
-        val response = storage.listFiles(BUCKET_ID)
+        val response = storage.listFiles(Constants.APPWRITE_BUCKET_ID)
 
         for (file in response.files) {
             if (!storedFiles.contains(file.name)) {
-                val downloadedFile = storage.getFileDownload(BUCKET_ID, file.id)
+                val downloadedFile = storage.getFileDownload(Constants.APPWRITE_BUCKET_ID, file.id)
                 val filePath = FileStorageManager.saveAudioFile(
                     context, file.name,
                     ByteArrayInputStream(downloadedFile)
