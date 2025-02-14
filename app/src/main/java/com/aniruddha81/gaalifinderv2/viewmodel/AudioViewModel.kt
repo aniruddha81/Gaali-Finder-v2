@@ -5,7 +5,6 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import com.aniruddha81.gaalifinderv2.appwrite.AppwriteRepository
 import com.aniruddha81.gaalifinderv2.data.AudioFile
@@ -68,7 +67,7 @@ class AudioViewModel(
     //    UI updates
     fun loadAudioFiles() {
         viewModelScope.launch {
-            audioRepository.getAudioFiles().asFlow().collect { files ->
+            audioRepository.getAudioFiles().collect { files ->
                 _audioFiles.value = files
             }
         }

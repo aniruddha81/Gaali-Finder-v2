@@ -13,6 +13,7 @@ import io.appwrite.services.Storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 
 class AppwriteRepository(context: Context, val dao: AudioFileDao) {
@@ -37,22 +38,27 @@ class AppwriteRepository(context: Context, val dao: AudioFileDao) {
         }
     }
 
-    suspend fun fetchAudioFiles(context: Context) {
-        if (!isInternetAvailable(context)) return
+    suspend fun fetchAudioFiles(context: Context) = withContext(Dispatchers.IO) {
+        if (!isInternetAvailable(context)) return@withContext
 
         val storedFiles = dao.getStoredFilenames().toSet()
         val response = storage.listFiles(Constants.APPWRITE_BUCKET_ID)
 
-        for (file in response.files) {
-            if (!storedFiles.contains(file.name)) {
+        response.files.forEach { file ->
+            if (dao.isFileStored(file.name) == 0) {
                 val downloadedFile = storage.getFileDownload(Constants.APPWRITE_BUCKET_ID, file.id)
                 val filePath = FileStorageManager.saveAudioFile(
                     context, file.name,
                     ByteArrayInputStream(downloadedFile)
                 )
 
-                val audioFile = AudioFile(fileName = file.name, path = filePath, source = file.id)
-                dao.insertAudioFile(audioFile)
+                dao.insertAudioFile(
+                    AudioFile(
+                        fileName = file.name,
+                        path = filePath,
+                        source = file.id
+                    )
+                )
             }
         }
     }

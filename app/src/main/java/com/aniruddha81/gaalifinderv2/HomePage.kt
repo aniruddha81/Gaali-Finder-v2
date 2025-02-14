@@ -30,6 +30,7 @@ import com.aniruddha81.gaalifinderv2.ui.AudioCard
 import com.aniruddha81.gaalifinderv2.ui.MainAppBar
 import com.aniruddha81.gaalifinderv2.ui.SearchWidgetState
 import com.aniruddha81.gaalifinderv2.viewmodel.AudioViewModel
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -71,10 +72,11 @@ fun HomePage(viewModel: AudioViewModel) {
                     existCount++
                 } else {
                     try {
-                        context.contentResolver.openInputStream(uri)?.use { inputStream ->
-                            val byteArray = inputStream.readBytes()
-                            viewModel.addLocalAudio(fileName, byteArray)
-                            addedFiles.add(fileName.dropLast(4)) // Removing extension for better UI
+                        context.contentResolver.openInputStream(uri)?.use { input ->
+                            val outputStream = ByteArrayOutputStream()
+                            input.copyTo(outputStream)
+                            viewModel.addLocalAudio(fileName, outputStream.toByteArray())
+                            addedFiles.add(fileName.dropLast(4))
                         }
                     } catch (e: Exception) {
                         Toast.makeText(
@@ -245,6 +247,11 @@ fun HomePage(viewModel: AudioViewModel) {
                         }
                     }
                 )
+                DisposableEffect(Unit) {
+                    onDispose {
+                        mediaPlayer.value?.release()
+                    }
+                }
             }
         }
     }
