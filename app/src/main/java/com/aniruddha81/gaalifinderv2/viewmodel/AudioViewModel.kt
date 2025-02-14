@@ -62,12 +62,6 @@ class AudioViewModel(private val context: Context) : ViewModel() {
     val audioFiles = _audioFiles.asStateFlow()
 
 
-//    init {
-//        viewModelScope.launch {
-//            appwriteRepository.fetchAudioFiles(context)
-//        }
-//    }
-
     //    filtered list
     val filteredAudioFiles = searchQuery.combine(audioFiles) { query, files ->
         if (query.isBlank()) files

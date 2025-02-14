@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.SplashScreen.ComposeSplash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">#E53935</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/face_with_symbols_on_mouth</item>
+        <item name="postSplashScreenTheme">@style/Theme.GaaliFinderv2</item>
+
+    </style>
+</resources>
