@@ -41,7 +41,6 @@ class AppwriteRepository(context: Context, val dao: AudioFileDao) {
     suspend fun fetchAudioFiles(context: Context) = withContext(Dispatchers.IO) {
         if (!isInternetAvailable(context)) return@withContext
 
-        val storedFiles = dao.getStoredFilenames().toSet()
         val response = storage.listFiles(Constants.APPWRITE_BUCKET_ID)
 
         response.files.forEach { file ->
