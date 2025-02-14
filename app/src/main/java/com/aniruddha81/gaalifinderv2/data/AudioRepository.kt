@@ -1,9 +1,5 @@
 package com.aniruddha81.gaalifinderv2.data
 
-import android.content.Context
-import com.aniruddha81.gaalifinderv2.appwrite.AppwriteClient
-import com.aniruddha81.gaalifinderv2.appwrite.NetworkUtils
-
 class AudioRepository(private val dao: AudioFileDao) {
     fun getAudioFiles() = dao.getAllAudioFiles()
 

@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
+import com.aniruddha81.gaalifinderv2.appwrite.AppwriteRepository
 import com.aniruddha81.gaalifinderv2.data.AudioFile
 import com.aniruddha81.gaalifinderv2.data.AudioRepository
 import com.aniruddha81.gaalifinderv2.data.FileStorageManager
@@ -21,7 +22,8 @@ import java.io.ByteArrayInputStream
 
 
 class AudioViewModel(
-    private val repository: AudioRepository,
+    private val audioRepository: AudioRepository,
+    private val appwriteRepository: AppwriteRepository,
     private val context: Context
 ) : ViewModel() {
 
@@ -50,6 +52,12 @@ class AudioViewModel(
     val audioFiles = _audioFiles.asStateFlow()
 
 
+    init {
+        viewModelScope.launch {
+            appwriteRepository.fetchAudioFiles(context)
+        }
+    }
+
     //    filtered list
     val filteredAudioFiles = searchQuery.combine(audioFiles) { query, files ->
         if (query.isBlank()) files
@@ -60,18 +68,17 @@ class AudioViewModel(
     //    UI updates
     fun loadAudioFiles() {
         viewModelScope.launch {
-            repository.getAudioFiles().asFlow().collect { files ->
+            audioRepository.getAudioFiles().asFlow().collect { files ->
                 _audioFiles.value = files
             }
         }
-
     }
 
     fun addLocalAudio(fileName: String, byteArray: ByteArray) {
         viewModelScope.launch {
             val inputStream = ByteArrayInputStream(byteArray)
             val path = FileStorageManager.saveAudioFile(context, fileName, inputStream)
-            repository.addAudioFile(fileName, path, "local")
+            audioRepository.addAudioFile(fileName, path, "local")
             loadAudioFiles() // Reload after adding
         }
     }
@@ -81,7 +88,7 @@ class AudioViewModel(
     fun deleteAudioFile(audio: AudioFile) {
         viewModelScope.launch {
             FileStorageManager.deleteAudioFile(audio.path)
-            repository.deleteAudioFile(audio)
+            audioRepository.deleteAudioFile(audio)
             loadAudioFiles()
         }
     }
