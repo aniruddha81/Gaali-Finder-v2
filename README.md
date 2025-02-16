@@ -28,7 +28,7 @@ object Constants {
 ```
 
 ### 3️⃣ Build & Run the App
-Open the project in Android Studio, connect your device/emulator, and run the app.
+Open the project in Android Studio, connect your device/emulator, and run the app. The apk file is in the release option.
 
 ## 📌 How It Works
 - **Admin-Only Uploads** – Only the admin can upload new clips to the remote server.
