@@ -23,6 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.aniruddha81.gaalifinderv2.data.AudioFile
@@ -33,7 +34,6 @@ import com.aniruddha81.gaalifinderv2.viewmodel.AudioViewModel
 import java.io.ByteArrayOutputStream
 import java.io.File
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomePage(viewModel: AudioViewModel) {
 
@@ -52,7 +52,7 @@ fun HomePage(viewModel: AudioViewModel) {
 
     val context = LocalContext.current
 
-    var mediaPlayer = rememberSaveable { mutableStateOf<MediaPlayer?>(null) }
+    val mediaPlayer = rememberSaveable { mutableStateOf<MediaPlayer?>(null) }
     var playingFile by rememberSaveable { mutableStateOf<AudioFile?>(null) }
 
     val filePickerLauncher =
@@ -259,7 +259,7 @@ fun HomePage(viewModel: AudioViewModel) {
                 }
             }
             Text(
-                text = "Aniruddha Roy",
+                text = stringResource(id = R.string.developer),
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
                     .padding(8.dp),

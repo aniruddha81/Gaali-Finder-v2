@@ -18,9 +18,6 @@ interface AudioFileDao {
     @Delete
     suspend fun deleteAudioFile(audioFile: AudioFile)
 
-    @Query("SELECT fileName FROM audio_files")
-    suspend fun getStoredFilenames(): List<String>
-
     @Query("SELECT COUNT(*) FROM audio_files WHERE fileName = :fileName")
     suspend fun isFileStored(fileName: String): Int
 }

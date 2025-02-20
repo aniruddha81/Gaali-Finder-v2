@@ -27,7 +27,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.SoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
+import com.aniruddha81.gaalifinderv2.R
 
 enum class SearchWidgetState {
     OPENED,
@@ -71,7 +73,7 @@ fun DefaultAppBar(
 ) {
     TopAppBar(
         title = {
-            Text(text = "Gaali Finder")
+            Text(text = stringResource(id = R.string.app_name))
         },
         actions = {
             IconButton(onClick = onSearchClicked) {

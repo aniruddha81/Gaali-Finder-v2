@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 
-class AppwriteRepository(context: Context, val dao: AudioFileDao) {
+class AppwriteRepository(context: Context, private val dao: AudioFileDao) {
     private val client = Client(context)
         .setEndpoint("https://cloud.appwrite.io/v1")
         .setProject(Constants.APPWRITE_PROJECT_ID)
