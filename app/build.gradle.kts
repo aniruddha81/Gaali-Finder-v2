@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
+    id("com.google.dagger.hilt.android")
 }
 
 android {
@@ -65,6 +66,10 @@ dependencies {
     implementation("io.appwrite:sdk-for-android:7.0.0")
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.paging.runtime.ktx)
+
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.android.compiler)
+    implementation(libs.androidx.hilt.navigation.compose) // Hilt ViewModel Integration
 
 
 }

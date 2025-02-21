@@ -12,6 +12,7 @@ import com.aniruddha81.gaalifinderv2.data.AudioFile
 import com.aniruddha81.gaalifinderv2.data.AudioRepository
 import com.aniruddha81.gaalifinderv2.data.FileStorageManager
 import com.aniruddha81.gaalifinderv2.ui.SearchWidgetState
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +22,7 @@ import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
 
 
+@HiltViewModel
 class AudioViewModel(private val context: Context) : ViewModel() {
 
     private val audioRepository: AudioRepository
