@@ -8,35 +8,19 @@ import com.aniruddha81.gaalifinderv2.data.AudioFile
 import com.aniruddha81.gaalifinderv2.data.AudioFileDao
 import com.aniruddha81.gaalifinderv2.data.FileStorageManager
 import io.appwrite.Client
-import io.appwrite.services.Account
 import io.appwrite.services.Storage
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
+import javax.inject.Inject
 
-class AppwriteRepository(context: Context, private val dao: AudioFileDao) {
+class AppwriteRepository @Inject constructor(context: Context, private val dao: AudioFileDao) {
+
     private val client = Client(context)
         .setEndpoint("https://cloud.appwrite.io/v1")
         .setProject(Constants.APPWRITE_PROJECT_ID)
 
     private val storage = Storage(client)
-    private val account = Account(client)
-
-    init {
-        CoroutineScope(Dispatchers.IO).launch {
-            loginAnonymously()
-        }
-    }
-
-    private suspend fun loginAnonymously() {
-        try {
-            account.createAnonymousSession()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
 
     suspend fun fetchAudioFiles(context: Context) = withContext(Dispatchers.IO) {
         if (!isInternetAvailable(context)) return@withContext

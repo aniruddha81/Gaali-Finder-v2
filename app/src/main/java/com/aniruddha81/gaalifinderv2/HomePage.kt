@@ -26,6 +26,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.aniruddha81.gaalifinderv2.data.AudioFile
 import com.aniruddha81.gaalifinderv2.ui.AudioCard
 import com.aniruddha81.gaalifinderv2.ui.MainAppBar
@@ -35,7 +36,7 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 
 @Composable
-fun HomePage(viewModel: AudioViewModel) {
+fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
 
     val searchWidgetState by viewModel.searchWidgetState
 

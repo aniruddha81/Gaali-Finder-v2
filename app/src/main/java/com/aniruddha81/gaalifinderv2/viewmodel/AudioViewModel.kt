@@ -7,7 +7,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aniruddha81.gaalifinderv2.appwrite.AppwriteRepository
-import com.aniruddha81.gaalifinderv2.data.AudioDatabase
 import com.aniruddha81.gaalifinderv2.data.AudioFile
 import com.aniruddha81.gaalifinderv2.data.AudioRepository
 import com.aniruddha81.gaalifinderv2.data.FileStorageManager
@@ -20,12 +19,13 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
+import javax.inject.Inject
 
 
 @HiltViewModel
-class AudioViewModel(private val context: Context) : ViewModel() {
+class AudioViewModel @Inject constructor(private val audioRepository: AudioRepository,private val appwriteRepository: AppwriteRepository,private val context: Context) : ViewModel() {
 
-    private val audioRepository: AudioRepository
+/*    private val audioRepository: AudioRepository
     private val appwriteRepository: AppwriteRepository
 
     init {
@@ -37,7 +37,7 @@ class AudioViewModel(private val context: Context) : ViewModel() {
         viewModelScope.launch {
             appwriteRepository.fetchAudioFiles(context)
         }
-    }
+    }*/
 
     /*------------ appbar vars starts -----------*/
 
@@ -64,6 +64,13 @@ class AudioViewModel(private val context: Context) : ViewModel() {
     val audioFiles = _audioFiles.asStateFlow()
 
 
+    init {
+        viewModelScope.launch {
+            appwriteRepository.fetchAudioFiles(context)
+        }
+    }
+
+
     //    filtered list
     val filteredAudioFiles = searchQuery.combine(audioFiles) { query, files ->
         if (query.isBlank()) files
@@ -83,7 +90,7 @@ class AudioViewModel(private val context: Context) : ViewModel() {
     fun addLocalAudio(fileName: String, byteArray: ByteArray) {
         viewModelScope.launch {
             val inputStream = ByteArrayInputStream(byteArray)
-            val path = FileStorageManager.saveAudioFile(context, fileName, inputStream)
+            val path = FileStorageManager.saveAudioFile(context,fileName, inputStream)
             audioRepository.addAudioFile(fileName, path, "local")
             loadAudioFiles() // Reload after adding
         }
