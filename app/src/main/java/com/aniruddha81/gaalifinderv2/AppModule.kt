@@ -30,7 +30,7 @@ object AppModule {
     }
 
     @Provides
-    fun provideAudioDao(database: AudioDatabase) = database.audioDao()
+    fun provideAudioDao(database: AudioDatabase) : AudioFileDao = database.audioDao()
 
     @Provides
     @Singleton
@@ -43,5 +43,4 @@ object AppModule {
     fun provideAppwriteRepository(@ApplicationContext context: Context, dao: AudioFileDao): AppwriteRepository {
         return AppwriteRepository(context, dao)
     }
-
 }

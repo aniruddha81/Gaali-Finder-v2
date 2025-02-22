@@ -1,10 +1,10 @@
 package com.aniruddha81.gaalifinderv2.viewmodel
 
-import android.content.Context
+import android.app.Application
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aniruddha81.gaalifinderv2.appwrite.AppwriteRepository
 import com.aniruddha81.gaalifinderv2.data.AudioFile
@@ -23,23 +23,21 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class AudioViewModel @Inject constructor(private val audioRepository: AudioRepository,private val appwriteRepository: AppwriteRepository,private val context: Context) : ViewModel() {
+class AudioViewModel @Inject constructor(
+    private val audioRepository: AudioRepository,
+    private val appwriteRepository: AppwriteRepository,
+    application: Application
+) : AndroidViewModel(application) {
 
-/*    private val audioRepository: AudioRepository
-    private val appwriteRepository: AppwriteRepository
+    private val _audioFiles = MutableStateFlow<List<AudioFile>>(emptyList())
+    val audioFiles = _audioFiles.asStateFlow()
+
 
     init {
-        val database = AudioDatabase.getDatabase(context)
-        val dao = database.audioDao()
-        audioRepository = AudioRepository(dao)
-        appwriteRepository = AppwriteRepository(context, dao)
-
         viewModelScope.launch {
-            appwriteRepository.fetchAudioFiles(context)
+            appwriteRepository.fetchAudioFiles(getApplication())
         }
-    }*/
-
-    /*------------ appbar vars starts -----------*/
+    }
 
     private val _searchWidgetState: MutableState<SearchWidgetState> =
         mutableStateOf(value = SearchWidgetState.CLOSED)
@@ -59,16 +57,6 @@ class AudioViewModel @Inject constructor(private val audioRepository: AudioRepos
 
     /*---------------appbar vars ends-------------*/
 
-
-    private val _audioFiles = MutableStateFlow<List<AudioFile>>(emptyList())
-    val audioFiles = _audioFiles.asStateFlow()
-
-
-    init {
-        viewModelScope.launch {
-            appwriteRepository.fetchAudioFiles(context)
-        }
-    }
 
 
     //    filtered list
@@ -90,7 +78,7 @@ class AudioViewModel @Inject constructor(private val audioRepository: AudioRepos
     fun addLocalAudio(fileName: String, byteArray: ByteArray) {
         viewModelScope.launch {
             val inputStream = ByteArrayInputStream(byteArray)
-            val path = FileStorageManager.saveAudioFile(context,fileName, inputStream)
+            val path = FileStorageManager.saveAudioFile(getApplication(), fileName, inputStream)
             audioRepository.addAudioFile(fileName, path, "local")
             loadAudioFiles() // Reload after adding
         }

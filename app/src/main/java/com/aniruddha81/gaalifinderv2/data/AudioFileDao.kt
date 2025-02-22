@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface AudioFileDao {
-    @Query("SELECT * FROM audio_files")
+    @Query("SELECT * FROM audio_files ORDER BY LOWER(fileName) ASC")
     fun getAllAudioFiles(): Flow<List<AudioFile>>
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)

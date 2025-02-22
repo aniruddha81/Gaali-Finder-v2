@@ -53,7 +53,7 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
 
     val context = LocalContext.current
 
-    val mediaPlayer = rememberSaveable { mutableStateOf<MediaPlayer?>(null) }
+    var mediaPlayer by rememberSaveable { mutableStateOf<MediaPlayer?>(null) }
     var playingFile by rememberSaveable { mutableStateOf<AudioFile?>(null) }
 
     val filePickerLauncher =
@@ -201,8 +201,8 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
                                     isPlaying = playingFile == audioFile,
                                     onPlayStop = {
                                         if (playingFile != audioFile) {
-                                            mediaPlayer.value?.release()
-                                            mediaPlayer.value = MediaPlayer().apply {
+                                            mediaPlayer?.release()
+                                            mediaPlayer = MediaPlayer().apply {
 
                                                 val uri = Uri.parse(audioFile.path)
 
@@ -217,14 +217,14 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
                                             playingFile = audioFile
 
                                         } else {
-                                            mediaPlayer.value?.release()
-                                            mediaPlayer.value = null
+                                            mediaPlayer?.release()
+                                            mediaPlayer = null
                                             playingFile = null
                                         }
                                     },
                                     onDelete = {
-                                        mediaPlayer.value?.release()
-                                        mediaPlayer.value = null
+                                        mediaPlayer?.release()
+                                        mediaPlayer = null
                                         playingFile = null
 
                                         try {
@@ -254,7 +254,7 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
                     )
                     DisposableEffect(Unit) {
                         onDispose {
-                            mediaPlayer.value?.release()
+                            mediaPlayer?.release()
                         }
                     }
                 }
