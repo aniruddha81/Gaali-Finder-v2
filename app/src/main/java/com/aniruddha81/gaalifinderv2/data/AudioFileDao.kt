@@ -20,4 +20,7 @@ interface AudioFileDao {
 
     @Query("SELECT COUNT(*) FROM audio_files WHERE fileName = :fileName")
     suspend fun isFileStored(fileName: String): Int
+
+    @Query("UPDATE audio_files SET fileName = :newName WHERE id = :audioId")
+    suspend fun renameAudioFile(audioId: Long, newName: String)
 }

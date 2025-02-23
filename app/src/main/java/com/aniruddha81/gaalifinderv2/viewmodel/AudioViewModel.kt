@@ -9,9 +9,10 @@ import androidx.lifecycle.viewModelScope
 import com.aniruddha81.gaalifinderv2.appwrite.AppwriteRepository
 import com.aniruddha81.gaalifinderv2.data.AudioFile
 import com.aniruddha81.gaalifinderv2.data.AudioRepository
-import com.aniruddha81.gaalifinderv2.data.FileStorageManager
+import com.aniruddha81.gaalifinderv2.data.FileStorageManagerForIPS
 import com.aniruddha81.gaalifinderv2.ui.SearchWidgetState
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
@@ -31,7 +32,6 @@ class AudioViewModel @Inject constructor(
 
     private val _audioFiles = MutableStateFlow<List<AudioFile>>(emptyList())
     val audioFiles = _audioFiles.asStateFlow()
-
 
     init {
         viewModelScope.launch {
@@ -58,7 +58,6 @@ class AudioViewModel @Inject constructor(
     /*---------------appbar vars ends-------------*/
 
 
-
     //    filtered list
     val filteredAudioFiles = searchQuery.combine(audioFiles) { query, files ->
         if (query.isBlank()) files
@@ -78,7 +77,8 @@ class AudioViewModel @Inject constructor(
     fun addLocalAudio(fileName: String, byteArray: ByteArray) {
         viewModelScope.launch {
             val inputStream = ByteArrayInputStream(byteArray)
-            val path = FileStorageManager.saveAudioFile(getApplication(), fileName, inputStream)
+            val path =
+                FileStorageManagerForIPS.saveAudioFileToIPS(getApplication(), fileName, inputStream)
             audioRepository.addAudioFile(fileName, path, "local")
             loadAudioFiles() // Reload after adding
         }
@@ -88,9 +88,15 @@ class AudioViewModel @Inject constructor(
     //    deletes audio from the room and i.p.s
     fun deleteAudioFile(audio: AudioFile) {
         viewModelScope.launch {
-            FileStorageManager.deleteAudioFile(audio.path)
+            FileStorageManagerForIPS.deleteAudioFileFromIPS(audio.path)
             audioRepository.deleteAudioFile(audio)
             loadAudioFiles()
+        }
+    }
+
+    fun renameAudioFile(audioId: Long, newName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            audioRepository.renameAudioFile(audioId, newName)
         }
     }
 }

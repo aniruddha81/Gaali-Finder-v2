@@ -5,10 +5,10 @@ import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
 
-object FileStorageManager {
+object FileStorageManagerForIPS {
 
     //    saves file to internal private storage
-    fun saveAudioFile(context: Context, fileName: String, inputStream: InputStream): String {
+    fun saveAudioFileToIPS(context: Context, fileName: String, inputStream: InputStream): String {
         val file = File(context.filesDir, fileName)
         inputStream.use { input ->
             FileOutputStream(file).use { output ->
@@ -19,7 +19,7 @@ object FileStorageManager {
     }
 
     //    deletes from stored-path (i.p.s)
-    fun deleteAudioFile(filePath: String) {
+    fun deleteAudioFileFromIPS(filePath: String) {
         val file = File(filePath)
         if (file.exists()) file.delete()
     }

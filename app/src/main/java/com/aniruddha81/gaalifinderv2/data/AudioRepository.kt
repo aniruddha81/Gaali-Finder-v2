@@ -20,4 +20,9 @@ class AudioRepository @Inject constructor(private val dao: AudioFileDao) {
     suspend fun deleteAudioFile(audio: AudioFile) {
         dao.deleteAudioFile(audio)
     }
+
+    //    rename audio file in roomDB
+    suspend fun renameAudioFile(audioId: Long, newName: String) {
+        dao.renameAudioFile(audioId, newName)
+    }
 }
