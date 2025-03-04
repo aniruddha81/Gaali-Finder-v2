@@ -20,8 +20,9 @@ import javax.inject.Inject
 class AppwriteRepository @Inject constructor(context: Context, private val dao: AudioFileDao) {
 
     private val client = Client(context)
-        .setEndpoint("https://cloud.appwrite.io/v1")
+        .setEndpoint(Constants.APPWRITE_ENDPOINT)
         .setProject(Constants.APPWRITE_PROJECT_ID)
+        .setSelfSigned(true)
 
     private val storage = Storage(client)
     private val account = Account(client)
