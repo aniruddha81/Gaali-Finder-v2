@@ -1,4 +1,4 @@
-package com.aniruddha81.gaalifinderv2
+package com.aniruddha81.gaalifinderv2.di
 
 import android.content.Context
 import androidx.room.Room
