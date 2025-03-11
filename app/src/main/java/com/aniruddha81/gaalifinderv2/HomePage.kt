@@ -47,6 +47,7 @@ import com.aniruddha81.gaalifinderv2.ui.SearchWidgetState
 import com.aniruddha81.gaalifinderv2.viewmodel.AudioViewModel
 import java.io.ByteArrayOutputStream
 import java.io.File
+import androidx.core.net.toUri
 
 
 @Composable
@@ -192,7 +193,7 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
             mediaPlayer?.release()
             mediaPlayer = MediaPlayer().apply {
 
-                val uri = Uri.parse(audioFile.path)
+                val uri = audioFile.path.toUri()
 
                 setDataSource(context, uri)
                 prepare()
