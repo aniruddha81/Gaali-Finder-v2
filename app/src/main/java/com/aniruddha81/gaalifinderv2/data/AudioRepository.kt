@@ -1,19 +1,14 @@
 package com.aniruddha81.gaalifinderv2.data
 
+import com.aniruddha81.gaalifinderv2.models.AudioFile
 import javax.inject.Inject
 
 class AudioRepository @Inject constructor(private val dao: AudioFileDao) {
     fun getAudioFiles() = dao.getAllAudioFiles()
 
     //    adds audioFile in roomDB
-    suspend fun addAudioFile(name: String, path: String, source: String) {
-        dao.insertAudioFile(
-            AudioFile(
-                fileName = name,
-                path = path,
-                source = source,
-            )
-        )
+    suspend fun addAudioFile(audio: AudioFile) {
+        dao.insertAudioFile(audio)
     }
 
     //    deletes from roomDB

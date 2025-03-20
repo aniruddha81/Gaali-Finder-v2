@@ -22,7 +22,8 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -63,13 +64,13 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
-    implementation("io.appwrite:sdk-for-android:7.0.0")
+    implementation(libs.sdk.for1.android)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.paging.runtime.ktx)
 
     implementation(libs.hilt.android)
     ksp(libs.hilt.android.compiler)
-    implementation(libs.androidx.hilt.navigation.compose) // Hilt ViewModel Integration
+    implementation(libs.androidx.hilt.navigation.compose) // Hilt ViewModel Integration ( hiltViewModel() )
 
 
 }

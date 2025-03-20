@@ -40,7 +40,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.aniruddha81.gaalifinderv2.data.AudioFile
+import com.aniruddha81.gaalifinderv2.models.AudioFile
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable

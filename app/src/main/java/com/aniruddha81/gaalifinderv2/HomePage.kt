@@ -40,7 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.aniruddha81.gaalifinderv2.data.AudioFile
+import com.aniruddha81.gaalifinderv2.models.AudioFile
 import com.aniruddha81.gaalifinderv2.ui.AudioCard
 import com.aniruddha81.gaalifinderv2.ui.MainAppBar
 import com.aniruddha81.gaalifinderv2.ui.SearchWidgetState

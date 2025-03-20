@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import com.aniruddha81.gaalifinderv2.models.AudioFile
 import kotlinx.coroutines.flow.Flow
 
 @Dao

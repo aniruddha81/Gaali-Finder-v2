@@ -1,4 +1,4 @@
-package com.aniruddha81.gaalifinderv2.data
+package com.aniruddha81.gaalifinderv2.models
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

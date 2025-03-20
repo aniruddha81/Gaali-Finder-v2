@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import com.aniruddha81.gaalifinderv2.Constants
-import com.aniruddha81.gaalifinderv2.data.AudioFile
+import com.aniruddha81.gaalifinderv2.models.AudioFile
 import com.aniruddha81.gaalifinderv2.data.AudioFileDao
 import com.aniruddha81.gaalifinderv2.data.FileStorageManagerForIPS
 import io.appwrite.Client

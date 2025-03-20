@@ -7,7 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.aniruddha81.gaalifinderv2.appwrite.AppwriteRepository
-import com.aniruddha81.gaalifinderv2.data.AudioFile
+import com.aniruddha81.gaalifinderv2.models.AudioFile
 import com.aniruddha81.gaalifinderv2.data.AudioRepository
 import com.aniruddha81.gaalifinderv2.data.FileStorageManagerForIPS
 import com.aniruddha81.gaalifinderv2.ui.SearchWidgetState
@@ -79,7 +79,13 @@ class AudioViewModel @Inject constructor(
             val inputStream = ByteArrayInputStream(byteArray)
             val path =
                 FileStorageManagerForIPS.saveAudioFileToIPS(getApplication(), fileName, inputStream)
-            audioRepository.addAudioFile(fileName, path, "local")
+            audioRepository.addAudioFile(
+                AudioFile(
+                    fileName = fileName,
+                    path = path,
+                    source = "local"
+                )
+            )
             loadAudioFiles() // Reload after adding
         }
     }
