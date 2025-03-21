@@ -47,7 +47,8 @@ class AppwriteRepository @Inject constructor(context: Context, private val dao: 
         val response = storage.listFiles(Constants.APPWRITE_BUCKET_ID)
 
         response.files.forEach { file ->
-            if (dao.isFileStored(file.name) == 0) {
+//            if (dao.isFileStored(file.name) == 0) {
+            if (dao.isFileStoredByUniqueFileIdOfAppwrite(file.id) == 0) {
                 val downloadedFile = storage.getFileDownload(Constants.APPWRITE_BUCKET_ID, file.id)
                 val filePath = FileStorageManagerForIPS.saveAudioFileToIPS(
                     context, file.name,

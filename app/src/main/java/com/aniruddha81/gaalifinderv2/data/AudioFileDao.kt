@@ -5,6 +5,7 @@ import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Update
 import com.aniruddha81.gaalifinderv2.models.AudioFile
 import kotlinx.coroutines.flow.Flow
 
@@ -25,6 +26,12 @@ interface AudioFileDao {
     @Query("SELECT COUNT(*) FROM audio_files WHERE fileName = :fileName")
     suspend fun isFileStored(fileName: String): Int
 
-    @Query("UPDATE audio_files SET fileName = :newName WHERE id = :audioId")
-    suspend fun renameAudioFile(audioId: Long, newName: String)
+    @Query("SELECT COUNT(*) FROM audio_files WHERE source= :fileIdAppwrite")
+    suspend fun isFileStoredByUniqueFileIdOfAppwrite(fileIdAppwrite: String): Int
+
+    @Update
+    suspend fun updateAudioFile(audioFile: AudioFile)
+
+    @Query("SELECT * FROM audio_files WHERE id = :id")
+    suspend fun getAudioFileById(id: Long): AudioFile
 }

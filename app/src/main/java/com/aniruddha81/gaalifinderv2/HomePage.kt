@@ -228,8 +228,8 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
         context.startActivity(Intent.createChooser(shareIntent, "Share Audio File"))
     }
 
-    fun onRenameAudio() {
-
+    fun onRenameAudio(audioFile: AudioFile, newName: String) {
+        viewModel.renameAudioFile(audioFile.id, newName = newName)
     }
 
     Scaffold(
@@ -286,13 +286,16 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
                     LazyVerticalStaggeredGrid(
                         columns = StaggeredGridCells.Fixed(3),
                         content = {
-                            items(items = filteredAudioFiles, key = { it.id }) {
+                            items(items = filteredAudioFiles, key = { it.id }) { audio ->
                                 AudioCard(
-                                    audioFile = it,
-                                    isPlaying = playingFile == it,
-                                    onPlayStop = { onPlayStop(it) },
-                                    onDelete = { onDelete(it) },
-                                    onShare = { shareAudioFile(it.path) }
+                                    audioFile = audio,
+                                    isPlaying = playingFile == audio,
+                                    onPlayStop = { onPlayStop(audio) },
+                                    onDelete = { onDelete(audio) },
+                                    onShare = { shareAudioFile(audio.path) },
+                                    onRename = {
+                                        onRenameAudio(audioFile = audio, newName = it)
+                                    }
                                 )
                             }
                             item {

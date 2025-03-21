@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.io.ByteArrayInputStream
+import java.io.File
 import javax.inject.Inject
 
 
@@ -102,7 +103,21 @@ class AudioViewModel @Inject constructor(
 
     fun renameAudioFile(audioId: Long, newName: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            audioRepository.renameAudioFile(audioId, newName)
+            val audioFile = audioRepository.getAudioFileById(audioId)
+
+            val oldFile = File(audioFile.path)
+
+            val newFile = File(oldFile.parent, newName)  // New file path
+            val success = oldFile.renameTo(newFile)  // Rename file
+
+            if (success) {
+                val updatedAudioFile = audioFile.copy(
+                    fileName = newName,
+                    path = newFile.absolutePath,
+                    source = audioFile.source
+                )
+                audioRepository.updateAudioFile(updatedAudioFile)  // Update RoomDB
+            }
         }
     }
 }

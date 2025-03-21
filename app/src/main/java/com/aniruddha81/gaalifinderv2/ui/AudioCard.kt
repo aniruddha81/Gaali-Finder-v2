@@ -16,7 +16,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
@@ -28,6 +31,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -39,6 +43,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import com.aniruddha81.gaalifinderv2.models.AudioFile
 
@@ -49,12 +54,15 @@ fun AudioCard(
     isPlaying: Boolean,
     onPlayStop: () -> Unit,
     onDelete: () -> Unit,
-    onShare: () -> Unit
+    onShare: () -> Unit,
+    onRename: (String) -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    var renameAudio by remember { mutableStateOf(audioFile.fileName) }
-    var renameTextField by remember { mutableStateOf(false) }
     val cardColor = remember { randomMaterial300Color() }
+
+    // State to track if the name is being edited
+    var isEditing by remember { mutableStateOf(false) }
+    var newName by remember { mutableStateOf(audioFile.fileName) }
 
     if (showDialog && audioFile.source == "local") {
         AlertDialog(
@@ -87,7 +95,7 @@ fun AudioCard(
             .padding(4.dp)
             .combinedClickable(
                 onClick = {},
-                onDoubleClick = {},
+                onDoubleClick = { isEditing = true },
                 onLongClick = { showDialog = true })
             .wrapContentHeight(),
         shape = RoundedCornerShape(12.dp),
@@ -101,15 +109,33 @@ fun AudioCard(
                 .fillMaxWidth()
                 .padding(12.dp)
         ) {
-            // File Name
-            Text(
-                text = audioFile.fileName.dropLast(4),
-                color = Color.Black,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .padding(bottom = 6.dp)
-            )
+            if (isEditing) {
+                OutlinedTextField(
+                    value = newName,
+                    onValueChange = { newName = it },
+//                    singleLine = true,
+                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(
+                        onDone = {
+                            isEditing = false
+                            onRename(newName)
+                        }
+                    ),
+//                    modifier = Modifier
+//                        .weight(1f)
+//                        .onGloballyPositioned { /* Handles auto-focus */ }
+                )
+            } else {
+                // File Name
+                Text(
+                    text = audioFile.fileName.dropLast(4),
+                    color = Color.Black,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .padding(bottom = 6.dp)
+                )
+            }
 
             Spacer(modifier = Modifier.height(20.dp))
 
@@ -119,7 +145,7 @@ fun AudioCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Play/Stop Button
+                // Play/Stop Button or Check Button
                 Box(
                     modifier = Modifier
                         .size(35.dp) // Reduced background size
@@ -130,18 +156,35 @@ fun AudioCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    IconButton(onClick = onPlayStop) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Clear else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "Stop" else "Play",
-                            tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer
-                            else MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(25.dp) // Keep icon size unchanged
-                        )
+                    if (isEditing) {
+                        IconButton(
+                            onClick = {
+                                isEditing = false
+                                onRename(newName)
+                            }) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = "Check",
+                                tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(25.dp) // Keep icon size unchanged
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = onPlayStop) {
+                            Icon(
+                                imageVector =
+                                    if (isPlaying) Icons.Default.Clear else Icons.Default.PlayArrow,
+                                contentDescription = if (isPlaying) "Stop" else "Play",
+                                tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer
+                                else MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.size(25.dp) // Keep icon size unchanged
+                            )
+                        }
                     }
                 }
 
-                //      share button
+                //      share button or cross button
                 Box(
                     modifier = Modifier
                         .size(35.dp) // Reduced background size
@@ -151,13 +194,24 @@ fun AudioCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    IconButton(onClick = onShare) {
-                        Icon(
-                            imageVector = Icons.Default.Share,
-                            contentDescription = "Share",
-                            tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                            modifier = Modifier.size(18.dp) // Keep icon size unchanged
-                        )
+                    if (isEditing) {
+                        IconButton(onClick = { isEditing = false }) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Cancel",
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(18.dp) // Keep icon size unchanged
+                            )
+                        }
+                    } else {
+                        IconButton(onClick = onShare) {
+                            Icon(
+                                imageVector = Icons.Default.Share,
+                                contentDescription = "Share",
+                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.size(18.dp) // Keep icon size unchanged
+                            )
+                        }
                     }
                 }
             }
