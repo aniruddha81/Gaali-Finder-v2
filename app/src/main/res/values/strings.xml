@@ -1,4 +1,6 @@
 <resources>
     <string name="app_name">Gaali Finder</string>
     <string name="developer">Aniruddha Roy</string>
+    <string name="notification_title">title</string>
+    <string name="notification_description">description</string>
 </resources>

@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.aniruddha81.gaalifinderv2" />
+                  <option name="mobileSdkAppId" value="1:9825470355:android:90d8ef058547bba0894a66" />
+                  <option name="projectId" value="gaali-finder" />
+                  <option name="projectNumber" value="9825470355" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
