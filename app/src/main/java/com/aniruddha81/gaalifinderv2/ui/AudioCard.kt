@@ -24,6 +24,8 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -51,11 +53,13 @@ import com.aniruddha81.gaalifinderv2.models.AudioFile
 @Composable
 fun AudioCard(
     audioFile: AudioFile,
+    isNew: Boolean,
     isPlaying: Boolean,
     onPlayStop: () -> Unit,
     onDelete: () -> Unit,
     onShare: () -> Unit,
-    onRename: (String) -> Unit
+    onRename: (String) -> Unit,
+    onMarkAsSeen: () -> Unit,
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val cardColor = remember { randomMaterial300Color() }
@@ -89,12 +93,17 @@ fun AudioCard(
         )
     }
 
+
     Card(
         modifier = Modifier
             .fillMaxSize()
             .padding(4.dp)
             .combinedClickable(
-                onClick = {},
+                onClick = {
+                    if (isNew) {
+                        onMarkAsSeen()
+                    }
+                },
                 onDoubleClick = { isEditing = true },
                 onLongClick = { showDialog = true })
             .wrapContentHeight(),
@@ -104,113 +113,137 @@ fun AudioCard(
         ),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp)
+        BadgedBox(
+            badge = {
+                if (isNew) {
+                    Badge(
+                        containerColor = Color.Red,
+                        contentColor = Color.White
+                    ) {
+                        Text("New")
+                    }
+                }
+            }
         ) {
-            if (isEditing) {
-                OutlinedTextField(
-                    value = newName,
-                    onValueChange = { newName = it },
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+
+                // File Name Edit Text
+
+                if (isEditing) {
+                    OutlinedTextField(
+                        value = newName,
+                        onValueChange = { newName = it },
 //                    singleLine = true,
-                    keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            isEditing = false
-                            onRename(newName)
-                        }
-                    ),
+                        keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(
+                            onDone = {
+                                isEditing = false
+                                onRename(newName)
+                            }
+                        ),
 //                    modifier = Modifier
 //                        .weight(1f)
 //                        .onGloballyPositioned { /* Handles auto-focus */ }
-                )
-            } else {
-                // File Name
-                Text(
-                    text = audioFile.fileName.dropLast(4),
-                    color = Color.Black,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier
-                        .padding(bottom = 6.dp)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(20.dp))
-
-            // Action Buttons
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Play/Stop Button or Check Button
-                Box(
-                    modifier = Modifier
-                        .size(35.dp) // Reduced background size
-                        .background(
-                            color = if (isPlaying) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.secondaryContainer,
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (isEditing) {
-                        IconButton(
-                            onClick = {
-                                isEditing = false
-                                onRename(newName)
-                            }) {
-                            Icon(
-                                imageVector = Icons.Filled.Check,
-                                contentDescription = "Check",
-                                tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(25.dp) // Keep icon size unchanged
-                            )
-                        }
-                    } else {
-                        IconButton(onClick = onPlayStop) {
-                            Icon(
-                                imageVector =
-                                    if (isPlaying) Icons.Default.Clear else Icons.Default.PlayArrow,
-                                contentDescription = if (isPlaying) "Stop" else "Play",
-                                tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer
-                                else MaterialTheme.colorScheme.onSecondaryContainer,
-                                modifier = Modifier.size(25.dp) // Keep icon size unchanged
-                            )
-                        }
-                    }
+                    )
+                } else {
+                    // File Name
+                    Text(
+                        text = audioFile.fileName.dropLast(4),
+                        color = Color.Black,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .padding(bottom = 6.dp)
+                    )
                 }
 
-                //      share button or cross button
-                Box(
-                    modifier = Modifier
-                        .size(35.dp) // Reduced background size
-                        .background(
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
+                Spacer(modifier = Modifier.height(20.dp))
+
+                // Action Buttons
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (isEditing) {
-                        IconButton(onClick = { isEditing = false }) {
-                            Icon(
-                                imageVector = Icons.Default.Clear,
-                                contentDescription = "Cancel",
-                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.size(18.dp) // Keep icon size unchanged
-                            )
+                    // Play/Stop Button or Check Button
+                    Box(
+                        modifier = Modifier
+                            .size(35.dp) // Reduced background size
+                            .background(
+                                color = if (isPlaying) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.secondaryContainer,
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isEditing) {
+                            IconButton(
+                                onClick = {
+                                    isEditing = false
+                                    onRename(newName)
+                                }) {
+                                Icon(
+                                    imageVector = Icons.Filled.Check,
+                                    contentDescription = "Check",
+                                    tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier.size(25.dp) // Keep icon size unchanged
+                                )
+                            }
+                        } else {
+                            IconButton(
+                                onClick = onPlayStop,
+                            ) {
+                                Icon(
+                                    imageVector =
+                                        if (isPlaying) Icons.Default.Clear else Icons.Default.PlayArrow,
+                                    contentDescription = if (isPlaying) "Stop" else "Play",
+                                    tint = if (isPlaying) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSecondaryContainer,
+                                    modifier = Modifier
+                                        .size(25.dp) // Keep icon size unchanged
+                                )
+                            }
                         }
-                    } else {
-                        IconButton(onClick = onShare) {
-                            Icon(
-                                imageVector = Icons.Default.Share,
-                                contentDescription = "Share",
-                                tint = MaterialTheme.colorScheme.onTertiaryContainer,
-                                modifier = Modifier.size(18.dp) // Keep icon size unchanged
-                            )
+                    }
+
+                    //      share button or cross button
+                    Box(
+                        modifier = Modifier
+                            .size(35.dp) // Reduced background size
+                            .background(
+                                color = MaterialTheme.colorScheme.tertiaryContainer,
+                                shape = CircleShape
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isEditing) {
+                            IconButton(onClick = { isEditing = false }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Cancel",
+                                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier.size(18.dp) // Keep icon size unchanged
+                                )
+                            }
+                        } else {
+                            IconButton(onClick = {
+                                onShare()
+                                if (isNew) {
+                                    onMarkAsSeen()
+                                }
+                            }) {
+                                Icon(
+                                    imageVector = Icons.Default.Share,
+                                    contentDescription = "Share",
+                                    tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                                    modifier = Modifier.size(18.dp) // Keep icon size unchanged
+                                )
+                            }
                         }
                     }
                 }

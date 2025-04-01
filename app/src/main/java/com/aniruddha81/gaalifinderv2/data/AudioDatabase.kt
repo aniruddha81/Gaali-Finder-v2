@@ -7,7 +7,7 @@ import com.aniruddha81.gaalifinderv2.models.AudioFile
 
 // this class is only used for creating object of DAO in the hilt module
 
-@Database(entities = [AudioFile::class], version = 1, exportSchema = false)
+@Database(entities = [AudioFile::class], version = 2, exportSchema = true)
 abstract class AudioDatabase : RoomDatabase() {
 
     abstract fun audioDao(): AudioFileDao

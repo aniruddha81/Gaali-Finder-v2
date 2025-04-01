@@ -27,7 +27,7 @@ interface AudioFileDao {
     suspend fun isFileStored(fileName: String): Int
 
     @Query("SELECT COUNT(*) FROM audio_files WHERE source= :fileIdAppwrite")
-    suspend fun isFileStoredByUniqueFileIdOfAppwrite(fileIdAppwrite: String): Int
+    suspend fun storedFileCountByUniqueFileIdOfAppwrite(fileIdAppwrite: String): Int
 
     @Update
     suspend fun updateAudioFile(audioFile: AudioFile)

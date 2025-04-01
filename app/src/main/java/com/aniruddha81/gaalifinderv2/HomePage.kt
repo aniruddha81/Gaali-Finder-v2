@@ -18,18 +18,24 @@ import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -48,8 +54,12 @@ import com.aniruddha81.gaalifinderv2.viewmodel.AudioViewModel
 import java.io.ByteArrayOutputStream
 import java.io.File
 import androidx.core.net.toUri
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.seconds
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
 
@@ -63,13 +73,15 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
 
 
     LaunchedEffect(Unit) {
-        viewModel.loadAudioFiles()
+        viewModel.loadAudioFilesFromRoomDB()
     }
 
     val context = LocalContext.current
 
     var mediaPlayer by rememberSaveable { mutableStateOf<MediaPlayer?>(null) }
-    var playingFile by rememberSaveable { mutableStateOf<AudioFile?>(null) }
+
+    // this will keep track of the composition state of the audio file
+    var playingFileId by rememberSaveable { mutableStateOf<Long?>(null) }
 
     fun getFileNameFromUri(uri: Uri): String {
 
@@ -170,7 +182,7 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
     fun onDelete(audioFile: AudioFile) {
         mediaPlayer?.release()
         mediaPlayer = null
-        playingFile = null
+        playingFileId = null
 
         try {
             viewModel.deleteAudioFile(audioFile)
@@ -189,26 +201,30 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
     }
 
     fun onPlayStop(audioFile: AudioFile) {
-        if (playingFile != audioFile) {
+        if (playingFileId != audioFile.id) {
             mediaPlayer?.release()
             mediaPlayer = MediaPlayer().apply {
 
                 val uri = audioFile.path.toUri()
-
                 setDataSource(context, uri)
                 prepare()
                 start()
 
                 setOnCompletionListener {
-                    playingFile = null
+                    playingFileId = null
+                    mediaPlayer?.release()
+                    mediaPlayer = null
                 }
             }
-            playingFile = audioFile
+            playingFileId = audioFile.id
+            if (audioFile.isNew) {
+                viewModel.markAsSeen(audioFile) // Mark as seen without affecting playback,otherwise it was creating a recomposition when playing ,that's why it was not working on the play button onclick
+            }
 
         } else {
             mediaPlayer?.release()
             mediaPlayer = null
-            playingFile = null
+            playingFileId = null
         }
     }
 
@@ -226,10 +242,6 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
 
         }
         context.startActivity(Intent.createChooser(shareIntent, "Share Audio File"))
-    }
-
-    fun onRenameAudio(audioFile: AudioFile, newName: String) {
-        viewModel.renameAudioFile(audioFile.id, newName = newName)
     }
 
     Scaffold(
@@ -271,41 +283,75 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
                     .padding(start = 2.dp, end = 2.dp),
 
                 ) {
-                if (filteredAudioFiles.isEmpty()) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "No audio files found",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                val state = rememberPullToRefreshState()
+                var isRefreshing by remember { mutableStateOf(false) }
+                val coroutineScope = rememberCoroutineScope()
+
+                PullToRefreshBox(
+                    isRefreshing = isRefreshing,
+                    onRefresh = {
+                        coroutineScope.launch {
+                            isRefreshing = true
+                            viewModel.refreshAudioFiles()
+                            delay(1.seconds)
+                            isRefreshing = false
+                        }
+                    },
+                    state = state,
+                    indicator = {
+                        Indicator(
+                            modifier = Modifier.align(Alignment.TopCenter),
+                            isRefreshing = isRefreshing,
+                            containerColor = MaterialTheme.colorScheme.primaryContainer,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            state = state
                         )
                     }
-                } else {
-                    LazyVerticalStaggeredGrid(
-                        columns = StaggeredGridCells.Fixed(3),
-                        content = {
-                            items(items = filteredAudioFiles, key = { it.id }) { audio ->
-                                AudioCard(
-                                    audioFile = audio,
-                                    isPlaying = playingFile == audio,
-                                    onPlayStop = { onPlayStop(audio) },
-                                    onDelete = { onDelete(audio) },
-                                    onShare = { shareAudioFile(audio.path) },
-                                    onRename = {
-                                        onRenameAudio(audioFile = audio, newName = it)
-                                    }
-                                )
-                            }
-                            item {
-                                Spacer(Modifier.height(500.dp))
-                            }
+                ) {
+                    if (filteredAudioFiles.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "No audio files found",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            )
                         }
-                    )
-                    DisposableEffect(Unit) {
-                        onDispose {
-                            mediaPlayer?.release()
+                    } else {
+                        LazyVerticalStaggeredGrid(
+                            columns = StaggeredGridCells.Fixed(3),
+                            content = {
+                                items(items = filteredAudioFiles, key = { it.id }) { audio ->
+                                    AudioCard(
+                                        audioFile = audio,
+                                        isNew = audio.isNew,
+                                        isPlaying = playingFileId == audio.id,
+                                        onPlayStop = {
+                                            onPlayStop(audio)
+                                        },
+                                        onDelete = { onDelete(audio) },
+                                        onShare = {
+                                            shareAudioFile(audio.path)
+                                        },
+                                        onRename = {
+                                            viewModel.renameAudioFile(audio.id, it)
+                                        },
+                                        onMarkAsSeen = {
+                                            viewModel.markAsSeen(audio)
+                                        }
+                                    )
+                                }
+                                item {
+                                    Spacer(Modifier.height(500.dp))
+                                }
+                            }
+                        )
+                        DisposableEffect(Unit) {
+                            onDispose {
+                                mediaPlayer?.release()
+                            }
                         }
                     }
                 }

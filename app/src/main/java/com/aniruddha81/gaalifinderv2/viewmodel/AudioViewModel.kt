@@ -35,10 +35,15 @@ class AudioViewModel @Inject constructor(
     val audioFiles = _audioFiles.asStateFlow()
 
     init {
+        refreshAudioFiles()
+    }
+
+    fun refreshAudioFiles() {
         viewModelScope.launch {
             appwriteRepository.fetchAudioFiles(getApplication())
         }
     }
+
 
     private val _searchWidgetState: MutableState<SearchWidgetState> =
         mutableStateOf(value = SearchWidgetState.CLOSED)
@@ -67,7 +72,7 @@ class AudioViewModel @Inject constructor(
 
 
     //    UI updates
-    fun loadAudioFiles() {
+    fun loadAudioFilesFromRoomDB() {
         viewModelScope.launch {
             audioRepository.getAudioFiles().collect { files ->
                 _audioFiles.value = files
@@ -87,7 +92,7 @@ class AudioViewModel @Inject constructor(
                     source = "local"
                 )
             )
-            loadAudioFiles() // Reload after adding
+            loadAudioFilesFromRoomDB() // Reload after adding
         }
     }
 
@@ -97,7 +102,7 @@ class AudioViewModel @Inject constructor(
         viewModelScope.launch {
             FileStorageManagerForIPS.deleteAudioFileFromIPS(audio.path)
             audioRepository.deleteAudioFile(audio)
-            loadAudioFiles()
+            loadAudioFilesFromRoomDB()
         }
     }
 
@@ -118,6 +123,12 @@ class AudioViewModel @Inject constructor(
                 )
                 audioRepository.updateAudioFile(updatedAudioFile)  // Update RoomDB
             }
+        }
+    }
+
+    fun markAsSeen(audioFile: AudioFile) {
+        viewModelScope.launch {
+            audioRepository.updateAudioFile(audioFile.copy(isNew = false))
         }
     }
 }

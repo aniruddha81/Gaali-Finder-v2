@@ -8,5 +8,6 @@ data class AudioFile(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val fileName: String = "",
     val path: String = "",
-    val source: String = ""
+    val source: String = "",
+    val isNew: Boolean = true
 )

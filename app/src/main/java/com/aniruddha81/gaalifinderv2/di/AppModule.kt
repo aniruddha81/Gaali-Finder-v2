@@ -6,6 +6,7 @@ import com.aniruddha81.gaalifinderv2.appwrite.AppwriteRepository
 import com.aniruddha81.gaalifinderv2.data.AudioDatabase
 import com.aniruddha81.gaalifinderv2.data.AudioFileDao
 import com.aniruddha81.gaalifinderv2.data.AudioRepository
+import com.aniruddha81.gaalifinderv2.data.MIGRATION_1_2
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -26,11 +27,11 @@ object AppModule {
         return Room.databaseBuilder(
             context, AudioDatabase::class.java,
             "audio_database"
-        ).build()
+        ).addMigrations(MIGRATION_1_2).build()
     }
 
     @Provides
-    fun provideAudioDao(database: AudioDatabase) : AudioFileDao = database.audioDao()
+    fun provideAudioDao(database: AudioDatabase): AudioFileDao = database.audioDao()
 
     @Provides
     @Singleton
@@ -40,7 +41,10 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAppwriteRepository(@ApplicationContext context: Context, dao: AudioFileDao): AppwriteRepository {
+    fun provideAppwriteRepository(
+        @ApplicationContext context: Context,
+        dao: AudioFileDao
+    ): AppwriteRepository {
         return AppwriteRepository(context, dao)
     }
 }
