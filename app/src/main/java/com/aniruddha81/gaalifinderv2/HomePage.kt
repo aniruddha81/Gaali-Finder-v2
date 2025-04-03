@@ -238,8 +238,6 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
             type = "audio/mpeg"
             putExtra(Intent.EXTRA_STREAM, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT) // Ensures proper back behavior
-
         }
         context.startActivity(Intent.createChooser(shareIntent, "Share Audio File"))
     }
