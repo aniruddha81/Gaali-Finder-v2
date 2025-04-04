@@ -66,9 +66,9 @@ fun AudioCard(
 
     // State to track if the name is being edited
     var isEditing by remember { mutableStateOf(false) }
-    var newName by remember { mutableStateOf(audioFile.fileName) }
+    var newName by remember { mutableStateOf(audioFile.fileName.dropLast(4)) }
 
-    if (showDialog && audioFile.source == "local") {
+    if (showDialog) {
         AlertDialog(
             title = { Text(text = "Delete Audio?") },
             text = { Text(text = "Are you sure to delete this audio?") },
@@ -105,7 +105,11 @@ fun AudioCard(
                     }
                 },
                 onDoubleClick = { isEditing = true },
-                onLongClick = { showDialog = true })
+                onLongClick = {
+                    if (audioFile.source == "local")
+                        showDialog = true
+                }
+            )
             .wrapContentHeight(),
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(
@@ -142,7 +146,7 @@ fun AudioCard(
                         keyboardActions = KeyboardActions(
                             onDone = {
                                 isEditing = false
-                                onRename(newName)
+                                onRename("$newName.mp3")
                             }
                         ),
 //                    modifier = Modifier
@@ -184,7 +188,7 @@ fun AudioCard(
                             IconButton(
                                 onClick = {
                                     isEditing = false
-                                    onRename(newName)
+                                    onRename("$newName.mp3")
                                 }) {
                                 Icon(
                                     imageVector = Icons.Filled.Check,
