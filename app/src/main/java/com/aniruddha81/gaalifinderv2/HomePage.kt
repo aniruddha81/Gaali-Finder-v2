@@ -230,6 +230,10 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
 
     fun shareAudioFile(filePath: String) {
 
+        mediaPlayer?.release()
+        mediaPlayer = null
+        playingFileId = null
+
         val file = File(filePath)
         if (!file.exists()) return
 
