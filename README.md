@@ -9,6 +9,8 @@ GaaliFinderV2 is an **audio clip sharing app** for meme lovers to share viral me
 - 📤 **Easy Sharing** – Share clips via social media apps.  
 - 🔍 **Search & Organize** – Find clips quickly with search functionality.  
 - 🗑️ **Manage Files** – Delete unwanted clips from the app.  
+- ✏️ **Rename Files** – Rename audio files by double-clicking.
+- 🔔 **Notification Updates** – Get notifications when new files are added.
 
 ## 📌 Setup Instructions  
 
@@ -26,8 +28,10 @@ object Constants {
     const val APPWRITE_BUCKET_ID = "your_bucket_id"
 }
 ```
+### 3️⃣ Add `google-services.json` File
+Download the `google-services.json` file from your Firebase project and place it in the `app` directory of this project.
 
-### 3️⃣ Build & Run the App
+### 4️⃣ Build & Run the App
 Open the project in Android Studio, connect your device/emulator, and run the app. The apk file is in the release option.
 
 ## 📌 How It Works

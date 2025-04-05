@@ -10,9 +10,9 @@ object FileStorageManagerForIPS {
     //    saves file to internal private storage
     fun saveAudioFileToIPS(context: Context, fileName: String, inputStream: InputStream): String {
         val file = File(context.filesDir, fileName)
-        inputStream.use { input ->
-            FileOutputStream(file).use { output ->
-                input.copyTo(output)
+        inputStream.use {
+            FileOutputStream(file).use { outputStream ->
+                it.copyTo(outputStream)
             }
         }
         return file.absolutePath

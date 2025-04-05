@@ -32,6 +32,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -141,7 +142,6 @@ fun AudioCard(
                     OutlinedTextField(
                         value = newName,
                         onValueChange = { newName = it },
-//                    singleLine = true,
                         keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                         keyboardActions = KeyboardActions(
                             onDone = {
@@ -149,9 +149,7 @@ fun AudioCard(
                                 onRename("$newName.mp3")
                             }
                         ),
-//                    modifier = Modifier
-//                        .weight(1f)
-//                        .onGloballyPositioned { /* Handles auto-focus */ }
+                        textStyle = LocalTextStyle.current.copy(color = Color.Black),
                     )
                 } else {
                     // File Name

@@ -266,7 +266,7 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { filePickerLauncher.launch(arrayOf("audio/mpeg")) },
+                onClick = { filePickerLauncher.launch(arrayOf("audio/mp3")) },
                 containerColor = Color(0xFFE53935),
                 elevation = FloatingActionButtonDefaults.elevation(8.dp)
             ) {
@@ -330,24 +330,14 @@ fun HomePage(viewModel: AudioViewModel = hiltViewModel()) {
                                         audioFile = audio,
                                         isNew = audio.isNew,
                                         isPlaying = playingFileId == audio.id,
-                                        onPlayStop = {
-                                            onPlayStop(audio)
-                                        },
+                                        onPlayStop = { onPlayStop(audio) },
                                         onDelete = { onDelete(audio) },
-                                        onShare = {
-                                            shareAudioFile(audio.path)
-                                        },
-                                        onRename = {
-                                            viewModel.renameAudioFile(audio.id, it)
-                                        },
-                                        onMarkAsSeen = {
-                                            viewModel.markAsSeen(audio)
-                                        }
+                                        onShare = { shareAudioFile(audio.path) },
+                                        onRename = { viewModel.renameAudioFile(audio.id, it) },
+                                        onMarkAsSeen = { viewModel.markAsSeen(audio) }
                                     )
                                 }
-                                item {
-                                    Spacer(Modifier.height(500.dp))
-                                }
+                                item { Spacer(Modifier.height(500.dp)) }
                             }
                         )
                         DisposableEffect(Unit) {
