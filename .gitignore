@@ -13,3 +13,17 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Sensitive / credentials
+app/google-services.json
+appwrite.config.json
+*.jks
+*.keystore
+keystore.properties
+secrets.properties
+.env
+.env.*
+
+# Appwrite function dependencies
+appwrite/functions/*/node_modules/
+node_modules/

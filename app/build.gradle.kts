@@ -40,6 +40,27 @@ android {
         )
         buildConfigField("String", "APPWRITE_PROJECT_ID", "\"${buildSecret("APPWRITE_PROJECT_ID")}\"")
         buildConfigField("String", "APPWRITE_BUCKET_ID", "\"${buildSecret("APPWRITE_BUCKET_ID")}\"")
+        buildConfigField("String", "APPWRITE_DATABASE_ID", "\"${buildSecret("APPWRITE_DATABASE_ID")}\"")
+        buildConfigField(
+            "String",
+            "APPWRITE_AUDIO_METADATA_COLLECTION_ID",
+            "\"${buildSecret("APPWRITE_AUDIO_METADATA_COLLECTION_ID", "audio_metadata")}\""
+        )
+        buildConfigField(
+            "String",
+            "APPWRITE_AUDIO_REACTIONS_COLLECTION_ID",
+            "\"${buildSecret("APPWRITE_AUDIO_REACTIONS_COLLECTION_ID", "audio_reactions")}\""
+        )
+        buildConfigField(
+            "String",
+            "APPWRITE_USER_PROFILES_COLLECTION_ID",
+            "\"${buildSecret("APPWRITE_USER_PROFILES_COLLECTION_ID", "user_profiles")}\""
+        )
+
+        // The Appwrite SDK hands the OAuth result back on this scheme; the manifest placeholder
+        // wires it into the CallbackActivity intent-filter so the two can never drift apart.
+        manifestPlaceholders["appwriteCallbackScheme"] =
+            "appwrite-callback-${buildSecret("APPWRITE_PROJECT_ID")}"
     }
 
     buildTypes {

@@ -15,7 +15,7 @@ abstract class AudioDatabase : RoomDatabase() {
     abstract fun audioDao(): AudioFileDao
 
     companion object {
-        const val VERSION = 3
+        const val VERSION = 4
         const val NAME = "audio_database"
     }
 }

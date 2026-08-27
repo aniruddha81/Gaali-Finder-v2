@@ -12,6 +12,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
@@ -50,10 +51,12 @@ fun HomeTopBar(
     query: String,
     clipCount: Int,
     sort: ClipSort,
+    isSignedIn: Boolean,
     onQueryChange: (String) -> Unit,
     onOpenSearch: () -> Unit,
     onCloseSearch: () -> Unit,
     onSortChange: (ClipSort) -> Unit,
+    onAccountClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AnimatedContent(
@@ -79,8 +82,10 @@ fun HomeTopBar(
             TitleTopBar(
                 clipCount = clipCount,
                 sort = sort,
+                isSignedIn = isSignedIn,
                 onOpenSearch = onOpenSearch,
                 onSortChange = onSortChange,
+                onAccountClick = onAccountClick,
             )
         }
     }
@@ -91,8 +96,10 @@ fun HomeTopBar(
 private fun TitleTopBar(
     clipCount: Int,
     sort: ClipSort,
+    isSignedIn: Boolean,
     onOpenSearch: () -> Unit,
     onSortChange: (ClipSort) -> Unit,
+    onAccountClick: () -> Unit,
 ) {
     TopAppBar(
         title = {
@@ -114,6 +121,21 @@ private fun TitleTopBar(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = stringResource(R.string.cd_search),
+                )
+            }
+            // Doubles as the sign-in entry point: a guest tapping it starts Google sign-in,
+            // which is why it is never hidden.
+            IconButton(onClick = onAccountClick) {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = stringResource(
+                        if (isSignedIn) R.string.cd_account else R.string.action_sign_in
+                    ),
+                    tint = if (isSignedIn) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 )
             }
         },
@@ -227,4 +249,5 @@ private val ClipSort.labelRes: Int
         ClipSort.NameAsc -> R.string.sort_name
         ClipSort.RecentFirst -> R.string.sort_recent
         ClipSort.LongestFirst -> R.string.sort_longest
+        ClipSort.MostPopular -> R.string.sort_popular
     }

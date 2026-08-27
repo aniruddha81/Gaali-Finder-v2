@@ -14,19 +14,18 @@ class FakeAudioPlayer : AudioPlayer {
     override val state: StateFlow<PlaybackState> = _state
 
     var nextResult: DataResult<Unit> = DataResult.Success(Unit)
-    val toggled = mutableListOf<Long>()
+    val played = mutableListOf<String>()
+    val paths = mutableListOf<String>()
     var stopCount = 0
 
-    override suspend fun toggle(clipId: Long, filePath: String): DataResult<Unit> {
-        toggled += clipId
+    override suspend fun play(clipId: String, filePath: String): DataResult<Unit> {
+        played += clipId
+        paths += filePath
         if (nextResult is DataResult.Success) {
             _state.value = PlaybackState(clipId, PlaybackState.Status.Playing)
         }
         return nextResult
     }
-
-    override suspend fun play(clipId: Long, filePath: String): DataResult<Unit> =
-        toggle(clipId, filePath)
 
     override suspend fun stop() {
         stopCount++

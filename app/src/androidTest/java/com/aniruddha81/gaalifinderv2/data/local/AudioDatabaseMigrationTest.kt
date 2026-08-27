@@ -11,8 +11,8 @@ import org.junit.Test
 import org.junit.runner.RunWith
 
 /**
- * Guards the migrations against the one failure mode that actually matters here: a user's
- * imported clips being lost or orphaned by a schema change.
+ * Guards the migrations against the failure mode that actually matters: an upgrade that leaves
+ * the database in a shape the app cannot open.
  *
  * Requires a connected device or emulator — run with `./gradlew :app:connectedDebugAndroidTest`.
  */
@@ -48,8 +48,7 @@ class AudioDatabaseMigrationTest {
             assertTrue(c.moveToFirst())
             assertEquals(1L, c.getLong(0))
             assertEquals("hello.mp3", c.getString(1))
-            // The migration must not attempt to probe files; new columns start at zero and are
-            // backfilled later by the repository.
+            // The migration must not attempt to probe files; new columns start at zero.
             assertEquals(0L, c.getLong(2))
             assertEquals(0L, c.getLong(3))
             assertEquals(0L, c.getLong(4))
@@ -57,8 +56,54 @@ class AudioDatabaseMigrationTest {
         }
     }
 
+    /**
+     * v4 moved the app from a local library to a mirror of the shared Appwrite catalogue.
+     *
+     * The old rows are deliberately dropped: a locally-imported clip has no `audio_metadata`
+     * document, no `fileId` and no uploader, so there is nothing to carry it across to. What
+     * this test pins down is that the migration leaves a *valid, empty* v4 table which the
+     * first sync can then fill — not that the old data survives.
+     */
     @Test
-    fun migrate1To3_runsTheWholeChainWithoutLosingRows() {
+    fun migrate3To4_replacesTheLocalLibraryWithAnEmptyCatalogueMirror() {
+        helper.createDatabase(TEST_DB, 3).use { db ->
+            db.execSQL(
+                """
+                INSERT INTO audio_files (id, fileName, path, source, isNew, durationMs, sizeBytes, addedAt)
+                VALUES (1, 'hello.mp3', '/data/hello.mp3', 'local', 1, 1000, 2048, 99)
+                """.trimIndent()
+            )
+        }
+
+        val db = helper.runMigrationsAndValidate(TEST_DB, 4, true, MIGRATION_3_4)
+
+        db.query("SELECT count(*) FROM audio_clips").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals(0, c.getInt(0))
+        }
+
+        // The new table must genuinely accept the shape the entity writes, or the first sync
+        // after upgrade would crash instead of repopulating.
+        db.execSQL(
+            """
+            INSERT INTO audio_clips
+                (documentId, fileId, fileName, uploaderId, uploaderName, isNew,
+                 durationMs, sizeBytes, createdAt, likeCount, dislikeCount, myReaction, cachedPath)
+            VALUES ('doc1', 'file1', 'oi.mp3', 'u1', 'Ada', 1, 0, 1024, 5, 2, 1, 'like', NULL)
+            """.trimIndent()
+        )
+
+        db.query("SELECT documentId, uploaderName, likeCount, myReaction FROM audio_clips").use { c ->
+            assertTrue(c.moveToFirst())
+            assertEquals("doc1", c.getString(0))
+            assertEquals("Ada", c.getString(1))
+            assertEquals(2, c.getInt(2))
+            assertEquals("like", c.getString(3))
+        }
+    }
+
+    @Test
+    fun migrate1To4_runsTheWholeChainAndEndsOnAValidSchema() {
         helper.createDatabase(TEST_DB, 1).use { db ->
             db.execSQL(
                 """
@@ -68,13 +113,13 @@ class AudioDatabaseMigrationTest {
             )
         }
 
-        val db = helper.runMigrationsAndValidate(TEST_DB, 3, true, *ALL_MIGRATIONS)
+        // Validation is the real assertion here: it fails if the chain leaves the database in
+        // any shape other than exactly what the v4 entity declares.
+        val db = helper.runMigrationsAndValidate(TEST_DB, 4, true, *ALL_MIGRATIONS)
 
-        db.query("SELECT fileName, isNew FROM audio_files").use { c ->
+        db.query("SELECT count(*) FROM audio_clips").use { c ->
             assertTrue(c.moveToFirst())
-            assertEquals("old.mp3", c.getString(0))
-            // v1 rows predate the badge, so they default to "new".
-            assertEquals(1, c.getInt(1))
+            assertEquals(0, c.getInt(0))
         }
     }
 }

@@ -11,7 +11,6 @@ import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
@@ -49,6 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.aniruddha81.gaalifinderv2.R
 import com.aniruddha81.gaalifinderv2.core.media.PlaybackState
 import com.aniruddha81.gaalifinderv2.domain.model.AudioClip
+import com.aniruddha81.gaalifinderv2.domain.model.ReactionType
 import com.aniruddha81.gaalifinderv2.ui.common.PlayStopGlyph
 import com.aniruddha81.gaalifinderv2.ui.common.WaveformBars
 import com.aniruddha81.gaalifinderv2.ui.common.formatDuration
@@ -66,6 +66,7 @@ fun AudioClipCard(
     playback: PlaybackState,
     onToggle: () -> Unit,
     onLongPress: () -> Unit,
+    onReact: (ReactionType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val accent = clipAccentFor(clip.id)
@@ -138,7 +139,29 @@ fun AudioClipCard(
                 overflow = TextOverflow.Ellipsis,
             )
 
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(2.dp))
+
+            // Attribution is part of the point of a shared catalogue, so it sits under the title
+            // rather than being hidden behind a long-press.
+            Text(
+                text = stringResource(R.string.uploaded_by, clip.uploaderName),
+                style = MaterialTheme.typography.labelSmall,
+                color = onAccent.copy(alpha = 0.75f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+
+            Spacer(Modifier.height(10.dp))
+
+            ReactionButtons(
+                myReaction = clip.myReaction,
+                likeCount = clip.likeCount,
+                dislikeCount = clip.dislikeCount,
+                onAccent = onAccent,
+                onReact = onReact,
+            )
+
+            Spacer(Modifier.height(8.dp))
 
             ClipFooter(
                 accent = accent,

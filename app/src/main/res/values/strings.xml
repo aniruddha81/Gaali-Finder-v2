@@ -12,7 +12,7 @@
     <string name="cd_close_search">Close search</string>
     <string name="cd_clear_query">Clear search</string>
     <string name="cd_sort">Change sort order</string>
-    <string name="cd_add_clips">Add clips</string>
+    <string name="cd_add_clips">Upload</string>
     <string name="offline_banner">You\'re offline — showing saved clips</string>
 
     <!-- Library summary -->
@@ -25,17 +25,18 @@
     <string name="filter_all">All</string>
     <string name="filter_new">New</string>
     <string name="filter_downloaded">Downloaded</string>
-    <string name="filter_mine">My clips</string>
+    <string name="filter_mine">My uploads</string>
 
     <!-- Sorting -->
     <string name="sort_name">Name (A–Z)</string>
     <string name="sort_recent">Recently added</string>
     <string name="sort_longest">Longest first</string>
+    <string name="sort_popular">Most popular</string>
 
     <!-- Empty and error states -->
     <string name="empty_library_title">No sounds yet</string>
-    <string name="empty_library_body">Pull down to grab the shared library, or add clips from your device.</string>
-    <string name="empty_library_action">Add clips</string>
+    <string name="empty_library_body">Nothing has been shared yet. Sign in to upload the first clip.</string>
+    <string name="empty_library_action">Upload a clip</string>
     <string name="empty_results_title">Nothing matches</string>
     <string name="empty_results_body">No clip is called “%1$s”. Try a shorter search.</string>
     <string name="empty_filter_title">Nothing here yet</string>
@@ -44,51 +45,68 @@
 
     <!-- Clip card -->
     <string name="badge_new">NEW</string>
+    <string name="uploaded_by">by %1$s</string>
+    <string name="cd_like">Like</string>
+    <string name="cd_undo_like">Remove like</string>
+    <string name="cd_dislike">Dislike</string>
+    <string name="cd_undo_dislike">Remove dislike</string>
 
     <!-- Clip actions -->
     <string name="action_share">Share</string>
-    <string name="action_rename">Rename</string>
     <string name="action_delete">Delete</string>
     <string name="action_cancel">Cancel</string>
     <string name="action_save">Save</string>
     <string name="share_chooser_title">Share “%1$s”</string>
 
-    <!-- Rename -->
-    <string name="rename_title">Rename clip</string>
-    <string name="rename_label">Clip name</string>
-    <string name="rename_success">Renamed to “%1$s”</string>
-
     <!-- Delete -->
     <string name="delete_title">Delete “%1$s”?</string>
-    <string name="delete_body">This removes the clip from your device. Clips from the shared library can be downloaded again.</string>
+    <string name="delete_body">This removes the clip for everyone. It can\'t be undone.</string>
     <string name="delete_success">“%1$s” deleted</string>
 
-    <!-- Import -->
+    <!-- Upload -->
     <string name="import_cancelled">No files selected</string>
-    <plurals name="import_added">
-        <item quantity="one">%d clip added</item>
-        <item quantity="other">%d clips added</item>
+    <string name="uploading">Uploading…</string>
+    <plurals name="upload_added">
+        <item quantity="one">%d clip uploaded</item>
+        <item quantity="other">%d clips uploaded</item>
     </plurals>
-    <plurals name="import_skipped">
-        <item quantity="one">%d clip was already in your library</item>
-        <item quantity="other">%d clips were already in your library</item>
+    <plurals name="upload_too_large">
+        <item quantity="one">%d clip was too large</item>
+        <item quantity="other">%d clips were too large</item>
     </plurals>
-    <plurals name="import_failed">
-        <item quantity="one">%d clip couldn\'t be added</item>
-        <item quantity="other">%d clips couldn\'t be added</item>
+    <plurals name="upload_failed">
+        <item quantity="one">%d clip couldn\'t be uploaded</item>
+        <item quantity="other">%d clips couldn\'t be uploaded</item>
     </plurals>
     <string name="import_read_failed">Couldn\'t read that file</string>
 
     <!-- Sync -->
     <plurals name="sync_downloaded">
-        <item quantity="one">%d new clip downloaded</item>
-        <item quantity="other">%d new clips downloaded</item>
+        <item quantity="one">%d new clip</item>
+        <item quantity="other">%d new clips</item>
     </plurals>
     <string name="sync_up_to_date">You\'re up to date</string>
-    <plurals name="sync_partial_failure">
-        <item quantity="one">%d clip couldn\'t be downloaded</item>
-        <item quantity="other">%d clips couldn\'t be downloaded</item>
-    </plurals>
+
+    <!-- Auth -->
+    <string name="action_sign_in">Sign in with Google</string>
+    <string name="action_sign_out">Sign out</string>
+    <string name="cd_account">Account</string>
+    <string name="signed_in_as">Signed in as %1$s</string>
+    <string name="signed_out">Signed out</string>
+    <string name="sign_in_to_upload">Sign in to upload and react</string>
+
+    <!-- Quota and premium -->
+    <string name="action_ok">OK</string>
+    <string name="action_upgrade">Upgrade</string>
+    <string name="action_not_now">Not now</string>
+    <string name="quota_title">Storage full</string>
+    <string name="quota_body_free">You\'ve used %1$s of your %2$s. Upgrade to premium for more space.</string>
+    <string name="quota_body_premium">You\'ve used %1$s of your %2$s. Delete a clip to free up space.</string>
+    <string name="upgrade_title">Premium plans</string>
+    <string name="upgrade_body">Coming soon. Premium will raise your storage limit — there\'s nothing to buy just yet.</string>
+    <string name="storage_used">%1$s of %2$s used</string>
+    <string name="plan_free">Free plan</string>
+    <string name="plan_premium">Premium plan</string>
 
     <!-- Errors -->
     <string name="error_no_connection">No internet connection</string>
@@ -103,5 +121,13 @@
     <string name="error_duplicate_name">A clip already has that name</string>
     <string name="error_invalid_name">That name has characters we can\'t use</string>
     <string name="error_no_share_target">No app available to share audio</string>
+    <string name="error_not_signed_in">Sign in to do that</string>
+    <string name="error_sign_in_failed">Couldn\'t sign you in. Try again.</string>
+    <!-- %1$d is the file size in KB, %2$d the limit in KB. -->
+    <string name="error_file_too_large">This file is %1$d KB — files must be %2$d KB or smaller.</string>
+    <!-- %1$s the file name, %2$d its size in KB, %3$d the limit in KB. -->
+    <string name="error_file_too_large_named">“%1$s” is %2$d KB — files must be %3$d KB or smaller.</string>
+    <string name="error_quota_exceeded">You\'ve reached your %1$s storage limit.</string>
+    <string name="error_upload_rejected">The server rejected that upload</string>
     <string name="error_unexpected">Something went wrong</string>
 </resources>

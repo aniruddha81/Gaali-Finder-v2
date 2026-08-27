@@ -6,31 +6,35 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 
 /**
- * Row format for a stored clip.
+ * Cached row for one clip in the shared catalogue.
  *
- * [source] is kept as the original stringly-typed column for backwards compatibility with
- * databases created before v3: `"local"` means the user imported it, anything else is the
- * Appwrite file id it was downloaded from. The mapping to a typed origin happens in
- * `AudioClipMappers`, so nothing above the data layer has to know this convention.
+ * Since v4 the table mirrors the `audio_metadata` collection rather than recording files the
+ * user saved locally: the primary key is the Appwrite document id, and [cachedPath] stays null
+ * until the audio has actually been downloaded for playback. Keeping the mirror means the grid
+ * renders instantly on launch and offline, while Appwrite stays authoritative.
  */
 @Entity(
-    tableName = "audio_files",
+    tableName = "audio_clips",
     indices = [
         Index(value = ["fileName"]),
-        Index(value = ["source"]),
+        Index(value = ["uploaderId"]),
+        Index(value = ["createdAt"]),
     ],
 )
 data class AudioFileEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val documentId: String,
+    val fileId: String = "",
     val fileName: String = "",
-    val path: String = "",
-    val source: String = LOCAL_SOURCE,
+    val uploaderId: String = "",
+    val uploaderName: String = "",
     val isNew: Boolean = true,
     @ColumnInfo(defaultValue = "0") val durationMs: Long = 0,
     @ColumnInfo(defaultValue = "0") val sizeBytes: Long = 0,
-    @ColumnInfo(defaultValue = "0") val addedAt: Long = 0,
-) {
-    companion object {
-        const val LOCAL_SOURCE = "local"
-    }
-}
+    @ColumnInfo(defaultValue = "0") val createdAt: Long = 0,
+    @ColumnInfo(defaultValue = "0") val likeCount: Int = 0,
+    @ColumnInfo(defaultValue = "0") val dislikeCount: Int = 0,
+    /** `like`, `dislike`, or null for no reaction — mirrors the `audio_reactions` document. */
+    val myReaction: String? = null,
+    /** Absolute path of the downloaded copy, or null when only metadata is cached. */
+    val cachedPath: String? = null,
+)

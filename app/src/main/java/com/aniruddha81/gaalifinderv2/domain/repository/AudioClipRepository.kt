@@ -2,63 +2,104 @@ package com.aniruddha81.gaalifinderv2.domain.repository
 
 import com.aniruddha81.gaalifinderv2.core.result.DataResult
 import com.aniruddha81.gaalifinderv2.domain.model.AudioClip
+import com.aniruddha81.gaalifinderv2.domain.model.ReactionType
 import kotlinx.coroutines.flow.Flow
 
 /**
- * The single way the app reads or changes the clip library.
+ * The single way the app reads or changes the shared clip catalogue.
  *
- * Reads are exposed as a [Flow] so the database stays the one source of truth — callers observe
- * it rather than re-fetching after every write. Writes return [DataResult] because each one can
+ * Reads are exposed as a [Flow] over the local mirror, so the grid renders instantly and
+ * offline while Appwrite stays authoritative. Writes return [DataResult] because each one can
  * fail in a way the user needs to hear about.
  */
 interface AudioClipRepository {
 
-    /** The whole library, newest schema state, re-emitting on every change. */
+    /** The whole catalogue, re-emitting on every change. */
     fun observeClips(): Flow<List<AudioClip>>
 
-    /** Pulls any clips added to the shared catalogue since the last sync. */
-    suspend fun syncRemoteClips(): DataResult<SyncOutcome>
+    /** Pulls the current catalogue — and, when signed in, this user's reactions — from Appwrite. */
+    suspend fun syncCatalogue(): DataResult<SyncOutcome>
 
-    /** Copies a picked file into app storage and registers it. */
-    suspend fun importClip(request: ImportRequest): DataResult<ImportOutcome>
+    /**
+     * Checks the limits, then uploads to Appwrite Storage and registers the metadata.
+     *
+     * Both the per-file cap and the total-quota check happen here before a byte is sent, so an
+     * over-quota upload costs nothing. The server re-validates independently.
+     */
+    suspend fun uploadClip(request: UploadClipRequest): DataResult<AudioClip>
 
-    /** Removes a clip from both the database and disk. Only local clips may be deleted. */
+    /** How much of their allowance this user has used, for the quota UI. */
+    suspend fun storageUsage(userId: String): DataResult<StorageUsage>
+
+    /** Removes a clip from Appwrite and the local mirror. Only the uploader may do this. */
     suspend fun deleteClip(clip: AudioClip): DataResult<Unit>
 
-    /** Renames the file on disk and the row that points at it, as one operation. */
-    suspend fun renameClip(clipId: Long, newDisplayName: String): DataResult<AudioClip>
+    /**
+     * Makes the audio available to the player, downloading and caching it on first use.
+     * Returns the local path to play from.
+     */
+    suspend fun ensurePlayable(clip: AudioClip): DataResult<String>
+
+    /** Applies a like/dislike toggle for [userId], writing through to Appwrite. */
+    suspend fun react(
+        clip: AudioClip,
+        userId: String,
+        tapped: ReactionType,
+    ): DataResult<AudioClip>
 
     /** Clears the "new" badge once the user has actually heard the clip. */
-    suspend fun markClipSeen(clipId: Long): DataResult<Unit>
+    suspend fun markClipSeen(clipId: String): DataResult<Unit>
 
-    /** Fills in duration/size for rows saved before those columns existed. */
-    suspend fun backfillMissingMetadata(): DataResult<Unit>
+    /** Drops every cached reaction marker, since they belong to the account that just left. */
+    suspend fun clearLocalReactions()
 }
 
 /** A file the user picked, handed over as bytes so the content URI can be released immediately. */
-data class ImportRequest(
+data class UploadClipRequest(
     val fileName: String,
     val bytes: ByteArray,
+    val uploaderId: String,
+    val uploaderName: String,
 ) {
+    val sizeBytes: Long get() = bytes.size.toLong()
+
     // ByteArray uses identity equality, which would silently break `==` on this data class.
     override fun equals(other: Any?): Boolean =
-        this === other ||
-            (other is ImportRequest && fileName == other.fileName && bytes.contentEquals(other.bytes))
+        this === other || (
+            other is UploadClipRequest &&
+                fileName == other.fileName &&
+                uploaderId == other.uploaderId &&
+                uploaderName == other.uploaderName &&
+                bytes.contentEquals(other.bytes)
+            )
 
-    override fun hashCode(): Int = 31 * fileName.hashCode() + bytes.contentHashCode()
+    override fun hashCode(): Int {
+        var result = fileName.hashCode()
+        result = 31 * result + uploaderId.hashCode()
+        result = 31 * result + uploaderName.hashCode()
+        result = 31 * result + bytes.contentHashCode()
+        return result
+    }
 }
 
-/** Why a single import did or did not add a clip. */
-sealed interface ImportOutcome {
-    data class Added(val clip: AudioClip) : ImportOutcome
-    data class AlreadyExists(val fileName: String) : ImportOutcome
+/** Where a user stands against their allowance. */
+data class StorageUsage(
+    val usedBytes: Long,
+    val limitBytes: Long,
+    val isPremium: Boolean,
+) {
+    val remainingBytes: Long get() = (limitBytes - usedBytes).coerceAtLeast(0)
+
+    fun hasRoomFor(sizeBytes: Long): Boolean = usedBytes + sizeBytes <= limitBytes
+
+    val fractionUsed: Float
+        get() = if (limitBytes <= 0) 0f else (usedBytes.toFloat() / limitBytes).coerceIn(0f, 1f)
 }
 
 /** What a catalogue sync actually did, so the UI can report it precisely. */
 data class SyncOutcome(
-    val downloaded: Int,
-    val alreadyPresent: Int,
-    val failed: Int,
+    val total: Int,
+    val added: Int,
 ) {
-    val hasNewClips: Boolean get() = downloaded > 0
+    val hasNewClips: Boolean get() = added > 0
 }

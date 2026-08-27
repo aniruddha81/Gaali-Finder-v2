@@ -10,23 +10,31 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.io.InputStream
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Owns the on-disk copies of clips, inside the app's private storage. */
+/**
+ * A local cache of clips that have been played.
+ *
+ * This is no longer a library the user owns — Appwrite is the only source of clips. The cache
+ * exists because [android.media.MediaPlayer] needs a path or URI to read from, and because
+ * re-downloading the same clip on every tap would be both slow and wasteful. Anything in here
+ * can be deleted at any time and will simply be fetched again.
+ */
 interface AudioFileStorage {
-    suspend fun save(fileName: String, source: InputStream): DataResult<StoredAudioFile>
-    suspend fun delete(path: String): DataResult<Unit>
-    suspend fun rename(currentPath: String, newFileName: String): DataResult<StoredAudioFile>
-    fun exists(path: String): Boolean
-    fun resolve(fileName: String): File
-}
+    /** Writes [bytes] under a name derived from [fileId], returning where it landed. */
+    suspend fun cache(fileId: String, fileName: String, bytes: ByteArray): DataResult<String>
 
-data class StoredAudioFile(
-    val path: String,
-    val sizeBytes: Long,
-)
+    /** The cached copy for this file id, or null when it has not been downloaded yet. */
+    fun cachedPathFor(fileId: String, fileName: String): String?
+
+    suspend fun delete(path: String): DataResult<Unit>
+
+    /** Removes every cached clip, e.g. when the catalogue is reset. */
+    suspend fun clear(): DataResult<Unit>
+
+    fun exists(path: String): Boolean
+}
 
 @Singleton
 class InternalAudioFileStorage @Inject constructor(
@@ -37,31 +45,36 @@ class InternalAudioFileStorage @Inject constructor(
     private val clipsDir: File
         get() = File(context.filesDir, CLIPS_DIRECTORY).apply { if (!exists()) mkdirs() }
 
-    override suspend fun save(
+    override suspend fun cache(
+        fileId: String,
         fileName: String,
-        source: InputStream,
-    ): DataResult<StoredAudioFile> = withContext(ioDispatcher) {
+        bytes: ByteArray,
+    ): DataResult<String> = withContext(ioDispatcher) {
         runCatchingResult {
-            val target = resolve(fileName)
-            // Write to a temp file first so a failure part-way through cannot leave a
-            // truncated clip sitting at the real path, looking valid to the database.
+            if (bytes.isEmpty()) throw AppErrorException(AppError.Storage())
+
+            val target = fileFor(fileId, fileName)
+            // Write to a temp file first so a failure part-way through cannot leave a truncated
+            // clip sitting at the real path, looking valid to the player.
             val temp = File(target.parentFile, "${target.name}.$TEMP_SUFFIX")
             try {
-                source.use { input ->
-                    temp.outputStream().use { output -> input.copyTo(output) }
-                }
+                temp.outputStream().use { it.write(bytes) }
                 if (temp.length() == 0L) throw AppErrorException(AppError.Storage())
                 if (!temp.renameTo(target)) {
                     temp.copyTo(target, overwrite = true)
                     temp.delete()
                 }
-                StoredAudioFile(path = target.absolutePath, sizeBytes = target.length())
+                target.absolutePath
             } catch (e: Throwable) {
                 temp.delete()
                 throw e
             }
         }
     }
+
+    override fun cachedPathFor(fileId: String, fileName: String): String? =
+        runCatching { fileFor(fileId, fileName).takeIf { it.length() > 0 }?.absolutePath }
+            .getOrNull()
 
     override suspend fun delete(path: String): DataResult<Unit> = withContext(ioDispatcher) {
         runCatchingResult {
@@ -71,39 +84,36 @@ class InternalAudioFileStorage @Inject constructor(
         }
     }
 
-    override suspend fun rename(
-        currentPath: String,
-        newFileName: String,
-    ): DataResult<StoredAudioFile> = withContext(ioDispatcher) {
+    override suspend fun clear(): DataResult<Unit> = withContext(ioDispatcher) {
         runCatchingResult {
-            val current = File(currentPath)
-            if (!current.exists()) throw AppErrorException(AppError.ClipFileMissing)
-
-            val target = File(current.parentFile ?: clipsDir, newFileName)
-            if (target.absolutePath == current.absolutePath) {
-                return@runCatchingResult StoredAudioFile(current.absolutePath, current.length())
-            }
-            if (target.exists()) throw AppErrorException(AppError.DuplicateName)
-            if (!current.renameTo(target)) throw AppErrorException(AppError.Storage())
-
-            StoredAudioFile(path = target.absolutePath, sizeBytes = target.length())
+            clipsDir.listFiles()?.forEach { runCatching { it.delete() } }
+            Unit
         }
     }
 
     override fun exists(path: String): Boolean =
-        runCatching { File(path).exists() }.getOrDefault(false)
+        runCatching { File(path).length() > 0 }.getOrDefault(false)
 
     /**
-     * Clips saved before v3 live directly in `filesDir`; new ones go in a `clips/` subdirectory.
-     * Existing files are resolved where they already are so nothing has to be moved.
+     * Names the cached file after the Storage file id, keeping the original extension so
+     * `MediaPlayer` can still sniff the format.
+     *
+     * The id rather than the display name means two clips called `oi.mp3` from different
+     * uploaders cannot collide in the cache.
      */
-    override fun resolve(fileName: String): File {
-        val legacy = File(context.filesDir, fileName)
-        return if (legacy.exists()) legacy else File(clipsDir, fileName)
+    private fun fileFor(fileId: String, fileName: String): File {
+        val extension = fileName.substringAfterLast('.', "")
+            .filter { it.isLetterOrDigit() }
+            .take(8)
+            .ifBlank { DEFAULT_EXTENSION }
+        val safeId = fileId.filter { it.isLetterOrDigit() || it == '_' || it == '-' }
+            .ifBlank { "clip" }
+        return File(clipsDir, "$safeId.$extension")
     }
 
     private companion object {
         const val CLIPS_DIRECTORY = "clips"
         const val TEMP_SUFFIX = "part"
+        const val DEFAULT_EXTENSION = "mp3"
     }
 }

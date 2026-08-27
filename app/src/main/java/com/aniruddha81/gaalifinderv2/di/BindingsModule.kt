@@ -5,13 +5,17 @@ import com.aniruddha81.gaalifinderv2.core.connectivity.ConnectivityMonitor
 import com.aniruddha81.gaalifinderv2.core.media.AudioPlayer
 import com.aniruddha81.gaalifinderv2.core.media.AudioPlayerController
 import com.aniruddha81.gaalifinderv2.data.remote.AppwriteAudioDataSource
+import com.aniruddha81.gaalifinderv2.data.remote.AppwriteAuthDataSource
+import com.aniruddha81.gaalifinderv2.data.remote.AuthDataSource
 import com.aniruddha81.gaalifinderv2.data.remote.RemoteAudioDataSource
 import com.aniruddha81.gaalifinderv2.data.repository.AudioClipRepositoryImpl
+import com.aniruddha81.gaalifinderv2.data.repository.AuthRepositoryImpl
 import com.aniruddha81.gaalifinderv2.data.storage.AudioFileStorage
 import com.aniruddha81.gaalifinderv2.data.storage.AudioMetadataReader
 import com.aniruddha81.gaalifinderv2.data.storage.InternalAudioFileStorage
 import com.aniruddha81.gaalifinderv2.data.storage.MediaMetadataAudioReader
 import com.aniruddha81.gaalifinderv2.domain.repository.AudioClipRepository
+import com.aniruddha81.gaalifinderv2.domain.repository.AuthRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -34,7 +38,15 @@ abstract class BindingsModule {
 
     @Binds
     @Singleton
+    abstract fun bindAuthRepository(impl: AuthRepositoryImpl): AuthRepository
+
+    @Binds
+    @Singleton
     abstract fun bindRemoteAudioDataSource(impl: AppwriteAudioDataSource): RemoteAudioDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindAuthDataSource(impl: AppwriteAuthDataSource): AuthDataSource
 
     @Binds
     @Singleton

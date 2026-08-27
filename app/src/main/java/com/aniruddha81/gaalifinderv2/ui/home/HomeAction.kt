@@ -3,6 +3,7 @@ package com.aniruddha81.gaalifinderv2.ui.home
 import com.aniruddha81.gaalifinderv2.domain.model.AudioClip
 import com.aniruddha81.gaalifinderv2.domain.model.ClipFilter
 import com.aniruddha81.gaalifinderv2.domain.model.ClipSort
+import com.aniruddha81.gaalifinderv2.domain.model.ReactionType
 
 /**
  * Every user intent the home screen can express.
@@ -23,9 +24,14 @@ sealed interface HomeAction {
 
     data object Refresh : HomeAction
 
-    data class ImportFiles(val files: List<PickedFile>) : HomeAction
+    /** The plus button. What it does depends on whether anyone is signed in. */
+    data object UploadRequested : HomeAction
+    data class UploadFiles(val files: List<PickedFile>) : HomeAction
     data object FilePickerCancelled : HomeAction
-    data class ImportFailed(val fileName: String?) : HomeAction
+    data class UploadReadFailed(val fileName: String?) : HomeAction
+
+    /** Tapping like or dislike. A guest gets the sign-in prompt instead. */
+    data class ReactionTapped(val clip: AudioClip, val reaction: ReactionType) : HomeAction
 
     data class ShareRequested(val clip: AudioClip) : HomeAction
     data object ShareTargetMissing : HomeAction
@@ -37,9 +43,14 @@ sealed interface HomeAction {
     data object DeleteConfirmed : HomeAction
     data object DeleteDismissed : HomeAction
 
-    data class RenameRequested(val clip: AudioClip) : HomeAction
-    data class RenameConfirmed(val newName: String) : HomeAction
-    data object RenameDismissed : HomeAction
+    data object UpgradeDialogDismissed : HomeAction
+    data object UpgradeRequested : HomeAction
+    data object UpgradeScreenDismissed : HomeAction
+
+    data object SignInRequested : HomeAction
+    data object SignOutRequested : HomeAction
+    data object AccountSheetRequested : HomeAction
+    data object AccountSheetDismissed : HomeAction
 }
 
 /** A file the user picked, already read into memory by the screen. */
@@ -47,6 +58,8 @@ data class PickedFile(
     val fileName: String,
     val bytes: ByteArray,
 ) {
+    val sizeBytes: Long get() = bytes.size.toLong()
+
     override fun equals(other: Any?): Boolean =
         this === other ||
             (other is PickedFile && fileName == other.fileName && bytes.contentEquals(other.bytes))

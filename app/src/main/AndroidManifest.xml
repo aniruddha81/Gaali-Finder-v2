@@ -39,6 +39,27 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--
+            Where Appwrite hands the Google OAuth result back to the SDK.
+
+            The scheme must be exactly "appwrite-callback-<projectId>"; it is injected from the
+            same build secret that configures the client, so the two cannot drift apart. The
+            Appwrite AAR does not declare this activity itself, so without this block the
+            browser has nowhere to return to and sign-in hangs on the consent screen.
+        -->
+        <activity
+            android:name="io.appwrite.views.CallbackActivity"
+            android:exported="true">
+            <intent-filter android:label="android_web_auth">
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data android:scheme="${appwriteCallbackScheme}" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

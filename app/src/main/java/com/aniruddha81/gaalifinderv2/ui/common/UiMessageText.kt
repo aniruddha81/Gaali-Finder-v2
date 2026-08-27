@@ -2,6 +2,8 @@ package com.aniruddha81.gaalifinderv2.ui.common
 
 import android.content.Context
 import com.aniruddha81.gaalifinderv2.R
+import com.aniruddha81.gaalifinderv2.core.error.AppError
+import com.aniruddha81.gaalifinderv2.domain.model.StorageQuota
 import com.aniruddha81.gaalifinderv2.ui.home.UiMessage
 
 /**
@@ -12,7 +14,7 @@ import com.aniruddha81.gaalifinderv2.ui.home.UiMessage
  * stays free of `Context`.
  */
 fun UiMessage.resolve(context: Context): String = when (this) {
-    is UiMessage.FromError -> context.getString(error.messageRes)
+    is UiMessage.FromError -> error.resolve(context)
 
     is UiMessage.FromResource ->
         if (args.isEmpty()) context.getString(resId)
@@ -20,17 +22,38 @@ fun UiMessage.resolve(context: Context): String = when (this) {
 
     is UiMessage.Plural -> context.resources.getQuantityString(resId, count, count)
 
-    is UiMessage.ImportSummary -> resolveImportSummary(context)
+    is UiMessage.UploadSummary -> resolveUploadSummary(context)
 }
 
-private fun UiMessage.ImportSummary.resolveImportSummary(context: Context): String {
+/**
+ * Errors that carry data need their numbers interpolated, which a bare [AppError.messageRes]
+ * lookup cannot do — a user told only "file too large" still does not know by how much.
+ */
+private fun AppError.resolve(context: Context): String = when (this) {
+    is AppError.FileTooLarge -> context.getString(
+        R.string.error_file_too_large,
+        kilobytes(sizeBytes),
+        kilobytes(StorageQuota.MAX_FILE_BYTES),
+    )
+
+    is AppError.QuotaExceeded -> context.getString(
+        R.string.error_quota_exceeded,
+        formatBytes(limitBytes),
+    )
+
+    else -> context.getString(messageRes)
+}
+
+private fun UiMessage.UploadSummary.resolveUploadSummary(context: Context): String {
     val parts = buildList {
-        if (added > 0) add(context.resources.getQuantityString(R.plurals.import_added, added, added))
-        if (skipped > 0) {
-            add(context.resources.getQuantityString(R.plurals.import_skipped, skipped, skipped))
+        if (added > 0) {
+            add(context.resources.getQuantityString(R.plurals.upload_added, added, added))
+        }
+        if (tooLarge > 0) {
+            add(context.resources.getQuantityString(R.plurals.upload_too_large, tooLarge, tooLarge))
         }
         if (failed > 0) {
-            add(context.resources.getQuantityString(R.plurals.import_failed, failed, failed))
+            add(context.resources.getQuantityString(R.plurals.upload_failed, failed, failed))
         }
     }
 
@@ -40,3 +63,6 @@ private fun UiMessage.ImportSummary.resolveImportSummary(context: Context): Stri
         else -> parts.joinToString(separator = " · ")
     }
 }
+
+/** Rounded up, so a 204,801-byte file never reads as exactly the 200 KB limit. */
+private fun kilobytes(bytes: Long): Long = (bytes + 1023) / 1024

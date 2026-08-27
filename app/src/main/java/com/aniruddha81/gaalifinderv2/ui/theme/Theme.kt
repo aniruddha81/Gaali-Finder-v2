@@ -126,7 +126,10 @@ fun GaaliFinderTheme(
  */
 @Composable
 @ReadOnlyComposable
-fun clipAccentFor(clipId: Long): Color {
+fun clipAccentFor(clipId: String): Color {
     val accents = LocalClipAccents.current
-    return accents[(clipId.hashCode().absoluteValue) % accents.size]
+    // `Int.MIN_VALUE.absoluteValue` is still negative, which would throw here, so the sign is
+    // masked off instead of negated.
+    val index = (clipId.hashCode() and Int.MAX_VALUE) % accents.size
+    return accents[index]
 }

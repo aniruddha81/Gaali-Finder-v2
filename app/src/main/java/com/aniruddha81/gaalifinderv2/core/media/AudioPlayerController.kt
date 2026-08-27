@@ -37,10 +37,14 @@ import javax.inject.Singleton
 interface AudioPlayer {
     val state: StateFlow<PlaybackState>
 
-    /** Plays [clipId] if something else is playing, or stops it if it already is. */
-    suspend fun toggle(clipId: Long, filePath: String): DataResult<Unit>
-
-    suspend fun play(clipId: Long, filePath: String): DataResult<Unit>
+    /**
+     * Starts [clipId] from [filePath], replacing whatever was playing.
+     *
+     * There is no `toggle` here on purpose: the caller has to fetch the audio before it can
+     * supply a path, so it must decide "is this already playing?" *before* that fetch — a
+     * toggle at this level would download a clip only to immediately stop it.
+     */
+    suspend fun play(clipId: String, filePath: String): DataResult<Unit>
 
     suspend fun stop()
 
@@ -93,15 +97,7 @@ class AudioPlayerController @Inject constructor(
         }
     }
 
-    override suspend fun toggle(clipId: Long, filePath: String): DataResult<Unit> =
-        if (_state.value.clipId == clipId && _state.value.isActive) {
-            stop()
-            DataResult.Success(Unit)
-        } else {
-            play(clipId, filePath)
-        }
-
-    override suspend fun play(clipId: Long, filePath: String): DataResult<Unit> = mutex.withLock {
+    override suspend fun play(clipId: String, filePath: String): DataResult<Unit> = mutex.withLock {
         releaseInternal()
 
         if (!File(filePath).exists()) {
