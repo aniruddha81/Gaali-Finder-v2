@@ -20,8 +20,12 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile\
 
--keep class com.aniruddha81.gaalifinderv2.models.AudioFile
+# Room reads and writes this entity reflectively, so its fields must keep their names.
+-keep class com.aniruddha81.gaalifinderv2.data.local.entity.AudioFileEntity { *; }
 
+# Appwrite deserialises its API responses with Gson; without this its model fields are renamed
+# and every response comes back with null properties.
+-keep class io.appwrite.models.** { *; }
 
 # Keep generic signatures; needed for correct type resolution
 -keepattributes Signature

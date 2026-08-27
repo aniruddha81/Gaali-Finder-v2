@@ -1,15 +1,27 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
     id("com.google.dagger.hilt.android")
     id("com.google.gms.google-services")
 }
 
+// Appwrite credentials are read from local.properties (git-ignored) or the environment,
+// so they never end up in version control. Missing values degrade gracefully at runtime:
+// the app still works fully offline, it just skips the remote catalogue sync.
+val localProperties = Properties().apply {
+    val file = rootProject.file("local.properties")
+    if (file.exists()) file.inputStream().use(::load)
+}
+
+fun buildSecret(key: String, fallback: String = ""): String =
+    localProperties.getProperty(key) ?: System.getenv(key) ?: fallback
+
 android {
     namespace = "com.aniruddha81.gaalifinderv2"
-    compileSdk = 35
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "com.aniruddha81.gaalifinderv2"
@@ -20,6 +32,14 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ksp.arg("room.schemaLocation", "$projectDir/schemas")
+
+        buildConfigField(
+            "String",
+            "APPWRITE_ENDPOINT",
+            "\"${buildSecret("APPWRITE_ENDPOINT", "https://fra.cloud.appwrite.io/v1")}\""
+        )
+        buildConfigField("String", "APPWRITE_PROJECT_ID", "\"${buildSecret("APPWRITE_PROJECT_ID")}\"")
+        buildConfigField("String", "APPWRITE_BUCKET_ID", "\"${buildSecret("APPWRITE_BUCKET_ID")}\"")
     }
 
     buildTypes {
@@ -33,14 +53,15 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-    kotlinOptions {
-        jvmTarget = "17"
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     buildFeatures {
         compose = true
+        buildConfig = true
+    }
+    testOptions {
+        unitTests.isReturnDefaultValues = true
     }
 }
 
@@ -48,17 +69,23 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
+    implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    implementation(libs.androidx.material.icons.core)
     testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.turbine)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    // ui-test-junit4 is versioned by the BOM, so the androidTest classpath needs it too.
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
+    androidTestImplementation(libs.androidx.room.testing)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 

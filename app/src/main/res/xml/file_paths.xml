@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
+    <!-- Clips saved from v3 onwards. Listed first so shared URIs use the narrower root. -->
+    <files-path name="clips" path="clips/" />
+    <!-- Clips imported by older versions, which sit directly in filesDir. -->
     <files-path name="internal" path="." />
 </paths>

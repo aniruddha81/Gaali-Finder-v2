@@ -1,6 +1,107 @@
 <resources>
     <string name="app_name">Gaali Finder</string>
     <string name="developer">Aniruddha Roy</string>
-    <string name="notification_title">title</string>
-    <string name="notification_description">description</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">New clips</string>
+    <string name="notification_channel_description">Tells you when new sounds land in the shared library.</string>
+
+    <!-- Top bar -->
+    <string name="search_clips_hint">Search clips…</string>
+    <string name="cd_search">Search</string>
+    <string name="cd_close_search">Close search</string>
+    <string name="cd_clear_query">Clear search</string>
+    <string name="cd_sort">Change sort order</string>
+    <string name="cd_add_clips">Add clips</string>
+    <string name="offline_banner">You\'re offline — showing saved clips</string>
+
+    <!-- Library summary -->
+    <plurals name="clip_count">
+        <item quantity="one">%d clip</item>
+        <item quantity="other">%d clips</item>
+    </plurals>
+
+    <!-- Filters -->
+    <string name="filter_all">All</string>
+    <string name="filter_new">New</string>
+    <string name="filter_downloaded">Downloaded</string>
+    <string name="filter_mine">My clips</string>
+
+    <!-- Sorting -->
+    <string name="sort_name">Name (A–Z)</string>
+    <string name="sort_recent">Recently added</string>
+    <string name="sort_longest">Longest first</string>
+
+    <!-- Empty and error states -->
+    <string name="empty_library_title">No sounds yet</string>
+    <string name="empty_library_body">Pull down to grab the shared library, or add clips from your device.</string>
+    <string name="empty_library_action">Add clips</string>
+    <string name="empty_results_title">Nothing matches</string>
+    <string name="empty_results_body">No clip is called “%1$s”. Try a shorter search.</string>
+    <string name="empty_filter_title">Nothing here yet</string>
+    <string name="empty_filter_body">No clips in this category. Try another filter.</string>
+    <string name="empty_clear_filters">Clear filters</string>
+
+    <!-- Clip card -->
+    <string name="badge_new">NEW</string>
+
+    <!-- Clip actions -->
+    <string name="action_share">Share</string>
+    <string name="action_rename">Rename</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="share_chooser_title">Share “%1$s”</string>
+
+    <!-- Rename -->
+    <string name="rename_title">Rename clip</string>
+    <string name="rename_label">Clip name</string>
+    <string name="rename_success">Renamed to “%1$s”</string>
+
+    <!-- Delete -->
+    <string name="delete_title">Delete “%1$s”?</string>
+    <string name="delete_body">This removes the clip from your device. Clips from the shared library can be downloaded again.</string>
+    <string name="delete_success">“%1$s” deleted</string>
+
+    <!-- Import -->
+    <string name="import_cancelled">No files selected</string>
+    <plurals name="import_added">
+        <item quantity="one">%d clip added</item>
+        <item quantity="other">%d clips added</item>
+    </plurals>
+    <plurals name="import_skipped">
+        <item quantity="one">%d clip was already in your library</item>
+        <item quantity="other">%d clips were already in your library</item>
+    </plurals>
+    <plurals name="import_failed">
+        <item quantity="one">%d clip couldn\'t be added</item>
+        <item quantity="other">%d clips couldn\'t be added</item>
+    </plurals>
+    <string name="import_read_failed">Couldn\'t read that file</string>
+
+    <!-- Sync -->
+    <plurals name="sync_downloaded">
+        <item quantity="one">%d new clip downloaded</item>
+        <item quantity="other">%d new clips downloaded</item>
+    </plurals>
+    <string name="sync_up_to_date">You\'re up to date</string>
+    <plurals name="sync_partial_failure">
+        <item quantity="one">%d clip couldn\'t be downloaded</item>
+        <item quantity="other">%d clips couldn\'t be downloaded</item>
+    </plurals>
+
+    <!-- Errors -->
+    <string name="error_no_connection">No internet connection</string>
+    <string name="error_remote_not_configured">Shared library isn\'t set up in this build</string>
+    <string name="error_network">Couldn\'t reach the server. Try again.</string>
+    <string name="error_storage">Couldn\'t save to storage</string>
+    <string name="error_out_of_space">Not enough space left on your device</string>
+    <string name="error_database">Something went wrong saving your library</string>
+    <string name="error_clip_file_missing">That clip\'s audio file is missing</string>
+    <string name="error_playback">Couldn\'t play that clip</string>
+    <string name="error_empty_name">Name can\'t be empty</string>
+    <string name="error_duplicate_name">A clip already has that name</string>
+    <string name="error_invalid_name">That name has characters we can\'t use</string>
+    <string name="error_no_share_target">No app available to share audio</string>
+    <string name="error_unexpected">Something went wrong</string>
 </resources>
