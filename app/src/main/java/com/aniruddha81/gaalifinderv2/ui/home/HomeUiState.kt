@@ -42,6 +42,8 @@ data class HomeUiState(
     val quotaBlock: AppError.QuotaExceeded? = null,
     val isAccountSheetOpen: Boolean = false,
     val isUpgradeScreenOpen: Boolean = false,
+    /** The voice recorder sheet is open. */
+    val isRecorderOpen: Boolean = false,
 ) {
     val isSignedIn: Boolean get() = authState.isSignedIn
 
@@ -66,8 +68,16 @@ sealed interface HomeEffect {
     data class ShowMessage(val message: UiMessage) : HomeEffect
     data class ShareClip(val filePath: String, val displayName: String) : HomeEffect
 
-    /** Asks the screen to launch Google sign-in, which needs the host activity. */
-    data class RequestSignIn(val thenOpenPicker: Boolean) : HomeEffect
+    /**
+     * Asks the screen to launch Google sign-in, which needs the host activity.
+     *
+     * At most one of [thenOpenPicker] / [thenOpenRecorder] is ever set — they name what the
+     * guest was trying to do when they were intercepted, so the tap costs them one step, not two.
+     */
+    data class RequestSignIn(
+        val thenOpenPicker: Boolean = false,
+        val thenOpenRecorder: Boolean = false,
+    ) : HomeEffect
 
     /** Asks the screen to open the system file picker. */
     data object OpenFilePicker : HomeEffect

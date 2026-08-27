@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -98,6 +99,13 @@ class HomeViewModel @Inject constructor(
 
             is HomeAction.UploadReadFailed ->
                 emitMessage(UiMessage.FromResource(R.string.import_read_failed))
+
+            HomeAction.RecordVoiceRequested -> requestRecordVoice()
+            HomeAction.VoiceRecorderDismissed ->
+                _uiState.update { it.copy(isRecorderOpen = false) }
+
+            is HomeAction.VoiceRecordingReady ->
+                uploadRecording(action.filePath, action.displayName)
 
             is HomeAction.ReactionTapped -> react(action.clip, action.reaction)
 
@@ -347,7 +355,7 @@ class HomeViewModel @Inject constructor(
 
     // --- Upload ------------------------------------------------------------------------------
 
-    /** The plus button: guests are sent through sign-in first, and land back in the picker. */
+    /** "Upload files": guests are sent through sign-in first, and land back in the picker. */
     private fun requestUpload() {
         if (_uiState.value.isUploading) return
 
@@ -357,6 +365,46 @@ class HomeViewModel @Inject constructor(
         }
 
         _effects.tryEmit(HomeEffect.OpenFilePicker)
+    }
+
+    /**
+     * "Record voice": guests sign in first, then land in the recorder. The screen has already
+     * cleared the RECORD_AUDIO permission by the time this arrives, so there is nothing left to
+     * gate here — just open the sheet.
+     */
+    private fun requestRecordVoice() {
+        if (_uiState.value.isUploading) return
+
+        if (!_uiState.value.isSignedIn) {
+            _effects.tryEmit(HomeEffect.RequestSignIn(thenOpenRecorder = true))
+            return
+        }
+
+        _uiState.update { it.copy(isRecorderOpen = true) }
+    }
+
+    /**
+     * Reads a finished recording off disk and pushes it through the same upload path as a
+     * picked file, so the 200 KB cap, quota check and result snackbar all behave identically.
+     * The temp file is deleted once its bytes are in hand.
+     */
+    private fun uploadRecording(filePath: String, displayName: String) {
+        _uiState.update { it.copy(isRecorderOpen = false) }
+
+        viewModelScope.launch {
+            val file = java.io.File(filePath)
+            val bytes = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                runCatching { file.readBytes() }.getOrNull()
+            }
+            runCatching { file.delete() }
+
+            if (bytes == null || bytes.isEmpty()) {
+                emitMessage(UiMessage.FromResource(R.string.import_read_failed))
+                return@launch
+            }
+
+            uploadFiles(listOf(PickedFile(fileName = "$displayName.m4a", bytes = bytes)))
+        }
     }
 
     private fun uploadFiles(files: List<PickedFile>) {

@@ -1,12 +1,15 @@
 package com.aniruddha81.gaalifinderv2.ui.home
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.expandVertically
@@ -14,6 +17,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -21,19 +25,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExtendedFloatingActionButton
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -43,8 +41,10 @@ import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -59,6 +59,8 @@ import com.aniruddha81.gaalifinderv2.auth.AuthViewModel
 import com.aniruddha81.gaalifinderv2.domain.model.ClipFilter
 import com.aniruddha81.gaalifinderv2.ui.common.resolve
 import com.aniruddha81.gaalifinderv2.ui.home.components.AccountSheet
+import com.aniruddha81.gaalifinderv2.ui.home.components.AddClipFab
+import com.aniruddha81.gaalifinderv2.ui.home.components.AddClipScrim
 import com.aniruddha81.gaalifinderv2.ui.home.components.AudioClipCard
 import com.aniruddha81.gaalifinderv2.ui.home.components.ClipActionsSheet
 import com.aniruddha81.gaalifinderv2.ui.home.components.ClipFilterRow
@@ -70,6 +72,7 @@ import com.aniruddha81.gaalifinderv2.ui.home.components.NoResultsState
 import com.aniruddha81.gaalifinderv2.ui.home.components.OfflineBanner
 import com.aniruddha81.gaalifinderv2.ui.home.components.QuotaExceededDialog
 import com.aniruddha81.gaalifinderv2.ui.home.components.UpgradePlaceholderDialog
+import com.aniruddha81.gaalifinderv2.ui.home.components.VoiceRecorderSheet
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
@@ -115,6 +118,9 @@ private fun HomeScreen(
     val scope = rememberCoroutineScope()
     val gridState = rememberLazyStaggeredGridState()
 
+    // Whether the expanding add-menu (upload / record) is open.
+    var addMenuExpanded by remember { mutableStateOf(false) }
+
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments()
     ) { uris ->
@@ -129,6 +135,30 @@ private fun HomeScreen(
             if (picked.isEmpty()) onAction(HomeAction.UploadReadFailed(null))
             else onAction(HomeAction.UploadFiles(picked))
         }
+    }
+
+    // RECORD_AUDIO is a runtime permission; the recorder only opens once it is granted.
+    val micPermission = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            onAction(HomeAction.RecordVoiceRequested)
+        } else {
+            scope.launch {
+                snackbarHostState.currentSnackbarData?.dismiss()
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.recorder_permission_denied)
+                )
+            }
+        }
+    }
+
+    fun openRecorderWithPermission() {
+        val granted = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (granted) onAction(HomeAction.RecordVoiceRequested)
+        else micPermission.launch(Manifest.permission.RECORD_AUDIO)
     }
 
     // Effects are collected once and never replayed, so a rotation cannot resurface an old
@@ -155,9 +185,12 @@ private fun HomeScreen(
                         onAction(HomeAction.ShareTargetMissing)
                     } else {
                         onSignIn(activity) {
-                            // Sending them straight into the picker means the plus button takes
-                            // one tap for a guest too, not two.
-                            if (effect.thenOpenPicker) filePicker.launch(AUDIO_MIME_TYPES)
+                            // Sending them straight where they were headed means the add menu
+                            // takes one tap for a guest too, not two.
+                            when {
+                                effect.thenOpenPicker -> filePicker.launch(AUDIO_MIME_TYPES)
+                                effect.thenOpenRecorder -> openRecorderWithPermission()
+                            }
                         }
                     }
                 }
@@ -197,37 +230,18 @@ private fun HomeScreen(
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                // A guest is not blocked here: the ViewModel turns the tap into a sign-in
-                // prompt, so the button always does something visible.
-                onClick = { onAction(HomeAction.UploadRequested) },
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary,
-                icon = {
-                    if (uiState.isUploading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(20.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.onPrimary,
-                        )
-                    } else {
-                        Icon(imageVector = Icons.Default.Add, contentDescription = null)
-                    }
-                },
-                text = {
-                    Text(
-                        stringResource(
-                            when {
-                                uiState.isUploading -> R.string.uploading
-                                uiState.isSignedIn -> R.string.cd_add_clips
-                                else -> R.string.action_sign_in
-                            }
-                        )
-                    )
-                },
+            // A guest is not blocked here: each option routes through the ViewModel, which turns
+            // the tap into a sign-in prompt, so the menu always does something visible.
+            AddClipFab(
+                expanded = addMenuExpanded,
+                isUploading = uiState.isUploading,
+                onExpandedChange = { addMenuExpanded = it },
+                onUploadFiles = { onAction(HomeAction.UploadRequested) },
+                onRecordVoice = { openRecorderWithPermission() },
             )
         },
     ) { innerPadding ->
+      Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -298,6 +312,14 @@ private fun HomeScreen(
                 }
             }
         }
+
+        // Sits above the grid but below the Scaffold's FAB slot, so the expanded add menu
+        // stays tappable while everything behind it dims and dismisses on tap.
+        AddClipScrim(
+            visible = addMenuExpanded,
+            onDismiss = { addMenuExpanded = false },
+        )
+      }
     }
 
     // Dialogs are driven from state, so the correct one survives a configuration change.
@@ -343,6 +365,15 @@ private fun HomeScreen(
                 onDismiss = { onAction(HomeAction.AccountSheetDismissed) },
             )
         }
+    }
+
+    if (uiState.isRecorderOpen) {
+        VoiceRecorderSheet(
+            onUpload = { file, displayName ->
+                onAction(HomeAction.VoiceRecordingReady(file.absolutePath, displayName))
+            },
+            onDismiss = { onAction(HomeAction.VoiceRecorderDismissed) },
+        )
     }
 }
 

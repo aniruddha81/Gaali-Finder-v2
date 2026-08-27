@@ -65,6 +65,37 @@
     <string name="delete_body">This removes the clip for everyone. It can\'t be undone.</string>
     <string name="delete_success">“%1$s” deleted</string>
 
+    <!-- Add menu (expanding FAB) -->
+    <string name="cd_add_menu">Add a clip</string>
+    <string name="cd_close_add_menu">Close menu</string>
+    <string name="add_upload_files">Upload files</string>
+    <string name="add_record_voice">Record voice</string>
+
+    <!-- Voice recorder -->
+    <string name="recorder_title">Record voice</string>
+    <string name="recorder_hint_idle">Tap the button to start recording</string>
+    <string name="recorder_hint_recording">Recording… tap to pause</string>
+    <string name="recorder_hint_paused">Paused — tap to resume, or stop to finish</string>
+    <string name="recorder_hint_review">Listen back, then upload or discard</string>
+    <string name="recorder_hint_size_limit">Reached the size limit — recording stopped. Listen back, then upload or discard.</string>
+    <string name="cd_recorder_start">Start recording</string>
+    <string name="cd_recorder_pause">Pause recording</string>
+    <string name="cd_recorder_resume">Resume recording</string>
+    <string name="cd_recorder_stop">Stop recording</string>
+    <string name="cd_recorder_play_preview">Play recording</string>
+    <string name="cd_recorder_pause_preview">Pause recording</string>
+    <string name="recorder_name_label">Clip name</string>
+    <string name="recorder_discard">Discard</string>
+    <string name="recorder_upload">Upload</string>
+    <string name="recorder_rerecord">Record again</string>
+    <string name="recorder_default_name">Voice %1$s</string>
+    <string name="recorder_permission_required">Microphone access is needed to record voice</string>
+    <string name="recorder_permission_denied">Enable microphone access in Settings to record voice</string>
+    <string name="recorder_start_failed">Couldn\'t start recording</string>
+    <string name="recorder_too_short">That recording was too short</string>
+    <string name="recorder_discard_title">Discard recording?</string>
+    <string name="recorder_discard_body">Your recording won\'t be saved.</string>
+
     <!-- Upload -->
     <string name="import_cancelled">No files selected</string>
     <string name="uploading">Uploading…</string>

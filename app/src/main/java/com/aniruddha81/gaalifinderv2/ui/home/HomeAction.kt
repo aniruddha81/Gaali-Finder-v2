@@ -24,11 +24,18 @@ sealed interface HomeAction {
 
     data object Refresh : HomeAction
 
-    /** The plus button. What it does depends on whether anyone is signed in. */
+    /** "Upload files" from the add menu. What it does depends on whether anyone is signed in. */
     data object UploadRequested : HomeAction
     data class UploadFiles(val files: List<PickedFile>) : HomeAction
     data object FilePickerCancelled : HomeAction
     data class UploadReadFailed(val fileName: String?) : HomeAction
+
+    /** "Record voice" from the add menu. Guests are sent through sign-in first. */
+    data object RecordVoiceRequested : HomeAction
+    data object VoiceRecorderDismissed : HomeAction
+
+    /** A finished recording the user confirmed for upload. */
+    data class VoiceRecordingReady(val filePath: String, val displayName: String) : HomeAction
 
     /** Tapping like or dislike. A guest gets the sign-in prompt instead. */
     data class ReactionTapped(val clip: AudioClip, val reaction: ReactionType) : HomeAction
