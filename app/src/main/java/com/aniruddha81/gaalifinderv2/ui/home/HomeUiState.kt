@@ -83,5 +83,11 @@ sealed interface UiMessage {
      * An upload batch can add, reject and fail files at once, so the sentence is assembled from
      * up to three plurals — something a single format string cannot express.
      */
-    data class UploadSummary(val added: Int, val tooLarge: Int, val failed: Int) : UiMessage
+    data class UploadSummary(
+        val added: Int,
+        val failed: Int,
+        val tooLargeNames: List<String> = emptyList(),
+    ) : UiMessage {
+        val tooLarge: Int get() = tooLargeNames.size
+    }
 }

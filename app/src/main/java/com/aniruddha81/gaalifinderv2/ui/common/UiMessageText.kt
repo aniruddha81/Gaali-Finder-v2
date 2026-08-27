@@ -49,8 +49,17 @@ private fun UiMessage.UploadSummary.resolveUploadSummary(context: Context): Stri
         if (added > 0) {
             add(context.resources.getQuantityString(R.plurals.upload_added, added, added))
         }
-        if (tooLarge > 0) {
-            add(context.resources.getQuantityString(R.plurals.upload_too_large, tooLarge, tooLarge))
+        if (tooLargeNames.isNotEmpty()) {
+            // The rejected files are named in full — a bare count would not tell the user which
+            // ones to trim. One line for the whole batch, so a multi-file reject does not fire
+            // several snackbars that each replace the last.
+            add(
+                context.getString(
+                    R.string.error_files_too_large_named,
+                    tooLargeNames.joinToString(", ") { "“$it”" },
+                    kilobytes(StorageQuota.MAX_FILE_BYTES),
+                )
+            )
         }
         if (failed > 0) {
             add(context.resources.getQuantityString(R.plurals.upload_failed, failed, failed))

@@ -109,6 +109,8 @@
     <string name="storage_used">%1$s of %2$s used</string>
     <string name="plan_free">Free plan</string>
     <string name="plan_premium">Premium plan</string>
+    <string name="account_upload_limit_note">Each file can be up to 200 KB.</string>
+    <string name="account_long_press_note">Long-press any audio card to share or rename the file.</string>
 
     <!-- Errors -->
     <string name="error_no_connection">No internet connection</string>
@@ -129,6 +131,8 @@
     <string name="error_file_too_large">This file is %1$d KB — files must be %2$d KB or smaller.</string>
     <!-- %1$s the file name, %2$d its size in KB, %3$d the limit in KB. -->
     <string name="error_file_too_large_named">“%1$s” is %2$d KB — files must be %3$d KB or smaller.</string>
+    <!-- %1$s a comma-separated list of file names, %2$d the limit in KB. -->
+    <string name="error_files_too_large_named">Couldn\'t upload %1$s — each file must be %2$d KB or smaller.</string>
     <string name="error_quota_exceeded">You\'ve reached your %1$s storage limit.</string>
     <string name="error_upload_rejected">The server rejected that upload</string>
     <string name="error_unexpected">Something went wrong</string>

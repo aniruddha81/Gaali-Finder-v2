@@ -248,6 +248,22 @@ fun AccountSheet(
 
             Spacer(Modifier.height(20.dp))
 
+            Text(
+                text = stringResource(R.string.account_upload_limit_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(Modifier.height(6.dp))
+
+            Text(
+                text = stringResource(R.string.account_long_press_note),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
+            Spacer(Modifier.height(20.dp))
+
             SheetAction(
                 icon = {
                     Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null)

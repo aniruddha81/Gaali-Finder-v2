@@ -376,8 +376,8 @@ class HomeViewModel @Inject constructor(
 
         viewModelScope.launch {
             var added = 0
-            var tooLarge = 0
             var failed = 0
+            val tooLargeNames = mutableListOf<String>()
             var quotaBlock: AppError.QuotaExceeded? = null
 
             // Each file is uploaded independently so one rejection cannot abort the batch.
@@ -395,19 +395,10 @@ class HomeViewModel @Inject constructor(
                     is DataResult.Success -> added++
                     is DataResult.Failure -> when (val error = result.error) {
                         is AppError.FileTooLarge -> {
-                            tooLarge++
-                            // Named individually, since the user needs to know *which* file and
-                            // by how much — a bare count would not tell them what to trim.
-                            emitMessage(
-                                UiMessage.FromResource(
-                                    R.string.error_file_too_large_named,
-                                    listOf(
-                                        file.fileName,
-                                        error.sizeBytes.toKilobytes(),
-                                        StorageQuota.MAX_FILE_BYTES.toKilobytes(),
-                                    ),
-                                )
-                            )
+                            // Names are collected and reported together after the batch, so a
+                            // 10-file selection with 3 rejects shows one message, not three that
+                            // each replace the last.
+                            tooLargeNames += file.fileName
                         }
 
                         is AppError.QuotaExceeded -> {
@@ -425,9 +416,13 @@ class HomeViewModel @Inject constructor(
 
             _uiState.update { it.copy(isUploading = false, quotaBlock = quotaBlock) }
 
-            if (added > 0 || tooLarge > 0 || failed > 0) {
+            if (added > 0 || tooLargeNames.isNotEmpty() || failed > 0) {
                 emitMessage(
-                    UiMessage.UploadSummary(added = added, tooLarge = tooLarge, failed = failed)
+                    UiMessage.UploadSummary(
+                        added = added,
+                        failed = failed,
+                        tooLargeNames = tooLargeNames,
+                    )
                 )
             }
 
