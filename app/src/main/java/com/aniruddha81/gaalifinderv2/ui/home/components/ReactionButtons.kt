@@ -1,5 +1,6 @@
 package com.aniruddha81.gaalifinderv2.ui.home.components
 
+import android.os.SystemClock
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -18,6 +19,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -30,6 +32,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.aniruddha81.gaalifinderv2.R
 import com.aniruddha81.gaalifinderv2.domain.model.ReactionType
+
+/**
+ * The shortest gap, in millis, between two reaction dispatches from one card.
+ *
+ * A single toggle is one server write; mashing like/dislike would otherwise fire one request
+ * per tap and, since they race each other, surface as "couldn't reach the server". Taps inside
+ * this window are swallowed here in the UI so they never reach the ViewModel.
+ */
+private const val REACTION_DEBOUNCE_MS = 600L
 
 /**
  * The like/dislike pair on a card.
@@ -46,6 +57,17 @@ fun ReactionButtons(
     onReact: (ReactionType) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // One clock for the whole pair, so alternating like -> dislike -> like is throttled too,
+    // not just repeated taps on the same chip. Survives recomposition; resets with the card.
+    val lastReactAt = remember { longArrayOf(0L) }
+    val debouncedReact: (ReactionType) -> Unit = { reaction ->
+        val now = SystemClock.elapsedRealtime()
+        if (now - lastReactAt[0] >= REACTION_DEBOUNCE_MS) {
+            lastReactAt[0] = now
+            onReact(reaction)
+        }
+    }
+
     Row(
         modifier = modifier,
         verticalAlignment = Alignment.CenterVertically,
@@ -59,7 +81,7 @@ fun ReactionButtons(
                 if (myReaction == ReactionType.Like) R.string.cd_undo_like else R.string.cd_like
             ),
             isDislike = false,
-            onClick = { onReact(ReactionType.Like) },
+            onClick = { debouncedReact(ReactionType.Like) },
         )
 
         ReactionChip(
@@ -71,7 +93,7 @@ fun ReactionButtons(
                 else R.string.cd_dislike
             ),
             isDislike = true,
-            onClick = { onReact(ReactionType.Dislike) },
+            onClick = { debouncedReact(ReactionType.Dislike) },
         )
     }
 }
