@@ -109,7 +109,7 @@
     <string name="storage_used">%1$s of %2$s used</string>
     <string name="plan_free">Free plan</string>
     <string name="plan_premium">Premium plan</string>
-    <string name="account_upload_limit_note">Each file can be up to 200 KB.</string>
+    <string name="account_upload_limit_note">Each file must be up to 200 KB.</string>
     <string name="account_long_press_note">Long-press any audio card to share or rename the file.</string>
 
     <!-- Errors -->
