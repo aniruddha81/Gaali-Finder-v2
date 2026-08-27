@@ -37,6 +37,8 @@
     <string name="empty_library_title">No sounds yet</string>
     <string name="empty_library_body">Nothing has been shared yet. Sign in to upload the first clip.</string>
     <string name="empty_library_action">Upload a clip</string>
+    <string name="library_unavailable_title">Couldn\'t load sounds</string>
+    <string name="library_unavailable_action">Try again</string>
     <string name="empty_results_title">Nothing matches</string>
     <string name="empty_results_body">No clip is called “%1$s”. Try a shorter search.</string>
     <string name="empty_filter_title">Nothing here yet</string>

@@ -261,12 +261,26 @@ private fun HomeScreen(
                 when {
                     uiState.isInitialLoading -> LoadingGrid()
 
-                    uiState.isLibraryEmpty -> EmptyState(
-                        title = stringResource(R.string.empty_library_title),
-                        body = stringResource(R.string.empty_library_body),
-                        actionLabel = stringResource(R.string.empty_library_action),
-                        onAction = { onAction(HomeAction.UploadRequested) },
-                    )
+                    // An empty grid has two very different causes. Offering "upload your first
+                    // clip" when the catalogue simply could not be fetched sends the user to the
+                    // one action that will not help; retrying is what they actually need.
+                    uiState.isLibraryEmpty -> uiState.libraryError.let { error ->
+                        if (error == null) {
+                            EmptyState(
+                                title = stringResource(R.string.empty_library_title),
+                                body = stringResource(R.string.empty_library_body),
+                                actionLabel = stringResource(R.string.empty_library_action),
+                                onAction = { onAction(HomeAction.UploadRequested) },
+                            )
+                        } else {
+                            EmptyState(
+                                title = stringResource(R.string.library_unavailable_title),
+                                body = UiMessage.FromError(error).resolve(LocalContext.current),
+                                actionLabel = stringResource(R.string.library_unavailable_action),
+                                onAction = { onAction(HomeAction.Refresh) },
+                            )
+                        }
+                    }
 
                     uiState.clips.isEmpty() -> NoResultsState(
                         query = uiState.searchQuery,

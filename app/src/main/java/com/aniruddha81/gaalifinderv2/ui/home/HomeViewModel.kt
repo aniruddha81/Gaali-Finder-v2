@@ -133,7 +133,10 @@ class HomeViewModel @Inject constructor(
                     it.copy(
                         totalClipCount = clips.size,
                         isInitialLoading = false,
-                        libraryError = null,
+                        // Only clips clear the error: the mirror re-emitting an empty list is
+                        // exactly what happens when a sync fails, so clearing unconditionally
+                        // would erase the reason the grid is empty.
+                        libraryError = if (clips.isEmpty()) it.libraryError else null,
                     )
                 }
             }
@@ -260,13 +263,21 @@ class HomeViewModel @Inject constructor(
             _uiState.update { it.copy(isSyncing = false) }
 
             when (result) {
-                is DataResult.Success -> if (isUserInitiated) reportSync(result.data)
+                is DataResult.Success -> {
+                    _uiState.update { it.copy(libraryError = null) }
+                    if (isUserInitiated) reportSync(result.data)
+                }
+
                 is DataResult.Failure -> {
                     // A silent start-up sync should not nag the user about being offline; only
                     // a pull-to-refresh they performed themselves deserves an answer.
                     if (isUserInitiated && result.error != AppError.RemoteNotConfigured) {
                         emitError(result.error)
                     }
+                    // A snackbar the user never triggered is easy to miss, and an empty grid with
+                    // no explanation reads as "there are no clips" rather than "the sync failed".
+                    // Recording it lets the empty state say which one actually happened.
+                    _uiState.update { it.copy(libraryError = result.error) }
                 }
             }
         }

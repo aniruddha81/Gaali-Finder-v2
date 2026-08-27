@@ -55,7 +55,9 @@ class AndroidConnectivityMonitor @Inject constructor(
                 network: Network,
                 capabilities: NetworkCapabilities,
             ) {
-                trySend(capabilities.hasInternet())
+                // Re-read the whole picture rather than trusting this one network: a VoLTE/IMS
+                // network losing INTERNET says nothing about the Wi-Fi that is carrying traffic.
+                trySend(isCurrentlyOnline())
             }
         }
 
@@ -76,10 +78,30 @@ class AndroidConnectivityMonitor @Inject constructor(
         }
     }.distinctUntilChanged()
 
+    /**
+     * True when *any* network can reach the internet, not just [ConnectivityManager.activeNetwork].
+     *
+     * The active network is not always the one carrying traffic: a device on Wi-Fi often also
+     * holds a cellular IMS network for VoLTE, which reports VALIDATED but not INTERNET. When
+     * that one happens to be "active", checking it alone reports the device as offline while
+     * Wi-Fi is working perfectly — and every sync then fails with NoConnection for no reason.
+     */
     override fun isCurrentlyOnline(): Boolean = runCatching {
         val manager = connectivityManager ?: return true
-        val network = manager.activeNetwork ?: return false
-        manager.getNetworkCapabilities(network)?.hasInternet() == true
+
+        val active = manager.activeNetwork
+        if (active != null && manager.getNetworkCapabilities(active)?.hasInternet() == true) {
+            return true
+        }
+
+        // `allNetworks` is deprecated in favour of observing a NetworkCallback, but this is the
+        // one-shot snapshot a request needs *before* it is sent; there is no non-deprecated
+        // synchronous equivalent, and the callback above cannot answer a caller that has not
+        // subscribed yet.
+        @Suppress("DEPRECATION")
+        manager.allNetworks.any { network ->
+            manager.getNetworkCapabilities(network)?.hasInternet() == true
+        }
     }.getOrDefault(true)
 
     private fun NetworkCapabilities.hasInternet(): Boolean =
