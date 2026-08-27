@@ -14,9 +14,21 @@ fun formatDuration(durationMs: Long): String? {
     if (durationMs <= 0) return null
 
     val totalSeconds = (durationMs / 1000.0).roundToInt().coerceAtLeast(1)
-    val minutes = totalSeconds / 60
-    val seconds = totalSeconds % 60
-    return String.format(Locale.US, "%d:%02d", minutes, seconds)
+    return formatClock(totalSeconds)
+}
+
+/**
+ * Formats a live playback position as `m:ss`, allowing `0:00`.
+ *
+ * Unlike [formatDuration] this never returns null and never floors to 1 second: it is the
+ * running counter on a playing card, so it has to be able to land on `0:00` at the end.
+ */
+fun formatElapsed(positionMs: Int): String =
+    formatClock((positionMs.coerceAtLeast(0) / 1000.0).roundToInt())
+
+private fun formatClock(totalSeconds: Int): String {
+    val safe = totalSeconds.coerceAtLeast(0)
+    return String.format(Locale.US, "%d:%02d", safe / 60, safe % 60)
 }
 
 /**

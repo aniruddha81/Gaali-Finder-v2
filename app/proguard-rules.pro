@@ -27,6 +27,19 @@
 # and every response comes back with null properties.
 -keep class io.appwrite.models.** { *; }
 
+# Query is *serialised* with Gson on the way out: each one becomes {"method":…,"attribute":…,
+# "values":[…]}. Those keys come from the field names, so obfuscating them sends the server
+# {"a":…,"b":…} and every request fails with `Invalid query method:` (HTTP 400) — which reads
+# as "couldn't reach the server" and leaves the catalogue empty in release builds only.
+-keep class io.appwrite.Query { *; }
+-keepclassmembers class io.appwrite.Query { <fields>; }
+
+# Permission and Role build their strings the same way, and the enums are matched by name.
+-keep class io.appwrite.Permission { *; }
+-keep class io.appwrite.Role { *; }
+-keep class io.appwrite.ID { *; }
+-keepclassmembers enum io.appwrite.enums.** { *; }
+
 # Keep generic signatures; needed for correct type resolution
 -keepattributes Signature
 

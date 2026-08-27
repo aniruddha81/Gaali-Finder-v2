@@ -238,6 +238,39 @@ class HomeViewModelTest {
         assertEquals(afterStartup + 1, repository.syncCount)
     }
 
+    /**
+     * The real [AuthRepository] starts at [AuthState.Unknown] and probes the session in the
+     * background, so the start-up sync in `init` runs before anyone knows who is signed in. The
+     * catalogue it fetches therefore carries no reactions, and the session landing afterwards has
+     * to trigger a second pass — otherwise a signed-in user sees none of their likes until they
+     * pull to refresh by hand.
+     */
+    @Test
+    fun `a session arriving after the start-up sync triggers another one`() = runTest(dispatcher) {
+        auth = FakeAuthRepository(AuthState.Unknown)
+        val vm = viewModel()
+        advanceUntilIdle()
+        val afterStartup = repository.syncCount
+
+        auth.setSignedIn()
+        advanceUntilIdle()
+
+        assertEquals(afterStartup + 1, repository.syncCount)
+    }
+
+    /** The same must hold when the session resolves while the start-up sync is still running. */
+    @Test
+    fun `a session resolving mid-sync is not dropped`() = runTest(dispatcher) {
+        auth = FakeAuthRepository(AuthState.Unknown)
+        val vm = viewModel()
+        // Deliberately not idle: the start-up sync is still in flight here, which is exactly the
+        // window where the old code discarded the session change and never re-read the catalogue.
+        auth.setSignedIn()
+        advanceUntilIdle()
+
+        assertTrue(repository.syncCount >= 2)
+    }
+
     @Test
     fun `a successful refresh reports how many clips arrived`() = runTest(dispatcher) {
         val vm = viewModel()

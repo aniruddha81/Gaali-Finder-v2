@@ -30,6 +30,15 @@ data class PlaybackState(
         else -> (positionMs.toFloat() / durationMs).coerceIn(0f, 1f)
     }
 
+    /**
+     * Milliseconds left to play for [id], counting down toward 0, or null when this clip is not
+     * the active one (so the card can fall back to showing the file's full length instead).
+     */
+    fun remainingMsFor(id: String): Int? = when {
+        clipId != id || !isActive || durationMs <= 0 -> null
+        else -> (durationMs - positionMs).coerceIn(0, durationMs)
+    }
+
     companion object {
         val Idle = PlaybackState()
     }

@@ -52,6 +52,7 @@ import com.aniruddha81.gaalifinderv2.domain.model.ReactionType
 import com.aniruddha81.gaalifinderv2.ui.common.PlayStopGlyph
 import com.aniruddha81.gaalifinderv2.ui.common.WaveformBars
 import com.aniruddha81.gaalifinderv2.ui.common.formatDuration
+import com.aniruddha81.gaalifinderv2.ui.common.formatElapsed
 import com.aniruddha81.gaalifinderv2.ui.theme.clipAccentFor
 
 /**
@@ -153,24 +154,36 @@ fun AudioClipCard(
 
             Spacer(Modifier.height(10.dp))
 
-            ReactionButtons(
-                myReaction = clip.myReaction,
-                likeCount = clip.likeCount,
-                dislikeCount = clip.dislikeCount,
-                onAccent = onAccent,
-                onReact = onReact,
-            )
-
-            Spacer(Modifier.height(8.dp))
-
             ClipFooter(
                 accent = accent,
                 onAccent = onAccent,
                 isPlaying = isPlaying,
                 isPreparing = isPreparing,
                 progress = progress,
-                durationLabel = formatDuration(clip.durationMs),
+                myReaction = clip.myReaction,
+                likeCount = clip.likeCount,
+                dislikeCount = clip.dislikeCount,
+                onReact = onReact,
             )
+
+            // The grid cell is too narrow to also carry the time on the controls row, so it sits
+            // on its own line below. While this clip is playing it counts down toward 0:00;
+            // otherwise it shows the file's full length, and is omitted entirely when the
+            // duration could never be probed rather than showing a misleading "0:00".
+            val remainingMs = playback.remainingMsFor(clip.id)
+            val timeLabel = when {
+                remainingMs != null -> formatElapsed(remainingMs)
+                else -> formatDuration(clip.durationMs)
+            }
+            timeLabel?.let { label ->
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelMedium,
+                    color = onAccent.copy(alpha = 0.85f),
+                    maxLines = 1,
+                )
+            }
         }
     }
 }
@@ -217,6 +230,10 @@ private fun NewBadge() {
     )
 }
 
+/**
+ * The reactions and the play control share one row: like/dislike pinned left, the play button
+ * pinned to the card's right edge, with the space between them absorbed by a weighted spacer.
+ */
 @Composable
 private fun ClipFooter(
     accent: Color,
@@ -224,13 +241,25 @@ private fun ClipFooter(
     isPlaying: Boolean,
     isPreparing: Boolean,
     progress: Float,
-    durationLabel: String?,
+    myReaction: ReactionType,
+    likeCount: Int,
+    dislikeCount: Int,
+    onReact: (ReactionType) -> Unit,
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
     ) {
+        ReactionButtons(
+            myReaction = myReaction,
+            likeCount = likeCount,
+            dislikeCount = dislikeCount,
+            onAccent = onAccent,
+            onReact = onReact,
+        )
+
+        Spacer(Modifier.weight(1f))
+
         PlayButton(
             accent = accent,
             onAccent = onAccent,
@@ -238,15 +267,6 @@ private fun ClipFooter(
             isPreparing = isPreparing,
             progress = progress,
         )
-
-        // Omitted entirely when the duration could not be probed, rather than showing "0:00".
-        if (durationLabel != null) {
-            Text(
-                text = durationLabel,
-                style = MaterialTheme.typography.labelMedium,
-                color = onAccent.copy(alpha = 0.85f),
-            )
-        }
     }
 }
 

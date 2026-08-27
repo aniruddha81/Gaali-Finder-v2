@@ -58,6 +58,14 @@ class HomeViewModel @Inject constructor(
     /** The full catalogue, before search and filters are applied. */
     private val allClips = MutableStateFlow<List<AudioClip>>(emptyList())
 
+    /**
+     * Set when a refresh arrived while one was already running, so it can be re-run afterwards.
+     *
+     * Only ever touched from the main dispatcher (the ViewModel's own scope), so a plain field
+     * is enough — there is no concurrent writer to guard against.
+     */
+    private var resyncWhenIdle = false
+
     init {
         observeLibrary()
         observePlayback()
@@ -176,8 +184,15 @@ class HomeViewModel @Inject constructor(
                 if (state is AuthState.Unknown) return@collect
 
                 val userId = state.userOrNull?.id
-                if (seenFirstState && userId != previousUserId) {
-                    refresh(isUserInitiated = false)
+                // The start-up sync in `init` runs against AuthState.Unknown, because the session
+                // probe is still in flight. So the first *resolved* state has to re-sync too when
+                // it names a user — otherwise a signed-in user keeps the guest catalogue, with
+                // none of their reactions, until they pull to refresh by hand.
+                val isFirstResolution = !seenFirstState
+                if ((isFirstResolution && userId != null) ||
+                    (seenFirstState && userId != previousUserId)
+                ) {
+                    refresh(isUserInitiated = false, forSessionChange = true)
                 }
                 previousUserId = userId
                 seenFirstState = true
@@ -251,16 +266,30 @@ class HomeViewModel @Inject constructor(
 
     // --- Sync --------------------------------------------------------------------------------
 
-    private fun refresh(isUserInitiated: Boolean) {
+    private fun refresh(isUserInitiated: Boolean, forSessionChange: Boolean = false) {
         // The slot is claimed synchronously, before launching. Checking the flag inside the
         // coroutine would let two quick pull-to-refresh gestures both past the guard, since
         // neither coroutine has started by the time the second one is dispatched.
         val previous = _uiState.getAndUpdate { it.copy(isSyncing = true) }
-        if (previous.isSyncing) return
+        if (previous.isSyncing) {
+            // Two quick pull-to-refresh gestures should still be one sync — but a session change
+            // must not be dropped. Start-up races the auth probe, so the in-flight sync can be
+            // the guest one while the user has just been resolved as signed in; discarding it
+            // would leave their reactions missing until they refreshed by hand.
+            if (forSessionChange) resyncWhenIdle = true
+            return
+        }
 
         viewModelScope.launch {
             val result = repository.syncCatalogue()
             _uiState.update { it.copy(isSyncing = false) }
+
+            // Whatever arrived during this sync gets its own pass, now that the session is settled.
+            if (resyncWhenIdle) {
+                resyncWhenIdle = false
+                refresh(isUserInitiated = false, forSessionChange = true)
+                return@launch
+            }
 
             when (result) {
                 is DataResult.Success -> {
