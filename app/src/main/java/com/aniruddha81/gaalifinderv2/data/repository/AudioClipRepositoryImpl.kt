@@ -182,13 +182,20 @@ class AudioClipRepositoryImpl @Inject constructor(
                 ?: throw AppErrorException(AppError.NotSignedIn)
             if (!clip.isDeletableBy(userId)) throw AppErrorException(AppError.Unexpected())
 
-            when (val result = remote.deleteClip(clip.id, clip.fileId)) {
-                is DataResult.Failure -> throw AppErrorException(result.error)
-                is DataResult.Success -> Unit
-            }
+            // `deleteClip` deletes the metadata document first, then the Storage file. If the
+            // Storage step fails, the document is already gone, so the clip must still leave the
+            // local mirror — otherwise the UI shows a clip whose catalogue entry no longer
+            // exists. The error is re-raised only after that cleanup, so the user is told the
+            // file could not be removed while the stale row does not linger.
+            val remoteResult = remote.deleteClip(clip.id, clip.fileId)
 
             dao.deleteById(clip.id)
             clip.cachedPath?.let { storage.delete(it) }
+
+            when (remoteResult) {
+                is DataResult.Failure -> throw AppErrorException(remoteResult.error)
+                is DataResult.Success -> Unit
+            }
             Unit
         }
     }

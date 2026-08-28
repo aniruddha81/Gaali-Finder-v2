@@ -11,6 +11,7 @@ import io.appwrite.ID
 import io.appwrite.Permission
 import io.appwrite.Query
 import io.appwrite.Role
+import io.appwrite.exceptions.AppwriteException
 import io.appwrite.models.InputFile
 import io.appwrite.services.Databases
 import io.appwrite.services.Storage
@@ -217,10 +218,25 @@ class AppwriteAudioDataSource @Inject constructor(
                     collectionId = AppwriteConfig.audioMetadataCollectionId,
                     documentId = documentId,
                 )
-                runCatching { storage.deleteFile(AppwriteConfig.bucketId, fileId) }
+                // The Storage file is the user's data too — a failure here (missing per-file
+                // delete permission, transient network) must surface, not be swallowed, or the
+                // bucket silently fills with orphans that still count against the user's quota.
+                // The metadata document is already gone, so the caller still removes the clip
+                // from the UI; the reported failure just makes the leftover file visible.
+                deleteStorageFile(fileId)
                 Unit
             }
         }
+
+    private suspend fun deleteStorageFile(fileId: String) {
+        try {
+            storage.deleteFile(AppwriteConfig.bucketId, fileId)
+        } catch (e: AppwriteException) {
+            // A 404 means the file is already gone — that is the outcome we wanted, so treat it
+            // as success. Anything else (401/permissions, 5xx, network) is a real failure.
+            if (e.code != 404) throw e
+        }
+    }
 
     override suspend fun usedStorageBytes(userId: String): DataResult<Long> =
         withContext(ioDispatcher) {

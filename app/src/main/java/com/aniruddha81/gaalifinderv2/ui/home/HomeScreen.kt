@@ -424,19 +424,20 @@ private fun ClipGrid(
 }
 
 /**
- * Only offers a filter when the catalogue actually contains clips it would match.
+ * Only offers a filter when the whole catalogue contains clips it would match.
  *
- * The currently selected filter is always kept, so the chip the user is standing on cannot
- * vanish from under them when its last matching clip is deleted.
+ * Availability is decided from the unfiltered mirror (the `catalogueHas*` flags), never from
+ * the already-filtered [clips] list — otherwise selecting "Downloaded" would immediately hide
+ * "New" and "My uploads", since a downloaded-only view usually matches neither. The currently
+ * selected filter is also always kept, so the chip the user is standing on cannot vanish when
+ * its last matching clip is deleted.
  */
 private fun HomeUiState.availableFilters(): List<ClipFilter> = buildList {
     add(ClipFilter.All)
-    if (filter == ClipFilter.New || clips.any { it.isNew }) add(ClipFilter.New)
-    if (filter == ClipFilter.Downloaded || clips.any { it.isDownloaded }) {
-        add(ClipFilter.Downloaded)
-    }
+    if (filter == ClipFilter.New || catalogueHasNew) add(ClipFilter.New)
+    if (filter == ClipFilter.Downloaded || catalogueHasDownloaded) add(ClipFilter.Downloaded)
     // "My uploads" is meaningless to a guest, who cannot have uploaded anything.
-    if (isSignedIn && (filter == ClipFilter.MyClips || clips.any { it.uploaderId == currentUserId })) {
+    if (isSignedIn && (filter == ClipFilter.MyClips || catalogueHasMine)) {
         add(ClipFilter.MyClips)
     }
 }

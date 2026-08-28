@@ -24,6 +24,15 @@ data class HomeUiState(
      * "nothing here" decision must not change just because a filter hid everything.
      */
     val totalClipCount: Int = 0,
+    /**
+     * Whether the *whole* catalogue contains any clip a given filter would match. Derived from
+     * the unfiltered mirror, not [clips], so switching to one category never makes the other
+     * category chips disappear — a chip is only hidden when the catalogue has genuinely never
+     * held a clip for it.
+     */
+    val catalogueHasNew: Boolean = false,
+    val catalogueHasDownloaded: Boolean = false,
+    val catalogueHasMine: Boolean = false,
     val isInitialLoading: Boolean = true,
     val isSyncing: Boolean = false,
     val isUploading: Boolean = false,

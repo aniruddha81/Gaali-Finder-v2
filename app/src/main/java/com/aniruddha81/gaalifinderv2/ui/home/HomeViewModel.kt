@@ -145,9 +145,16 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             repository.observeClips().collect { clips ->
                 allClips.value = clips
+                val currentUserId = _uiState.value.currentUserId
                 _uiState.update {
                     it.copy(
                         totalClipCount = clips.size,
+                        // Computed from the full mirror so the filter chips stay put when the
+                        // user switches category — see HomeUiState.availableFilters().
+                        catalogueHasNew = clips.any { clip -> clip.isNew },
+                        catalogueHasDownloaded = clips.any { clip -> clip.isDownloaded },
+                        catalogueHasMine = currentUserId != null &&
+                            clips.any { clip -> clip.uploaderId == currentUserId },
                         isInitialLoading = false,
                         // Only clips clear the error: the mirror re-emitting an empty list is
                         // exactly what happens when a sync fails, so clearing unconditionally

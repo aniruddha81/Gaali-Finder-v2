@@ -96,7 +96,12 @@ fun Throwable.toAppError(): AppError {
         is AppErrorException -> error
         is UnknownHostException -> AppError.NoConnection
         is SocketTimeoutException -> AppError.Network(this)
-        is AppwriteException -> AppError.Network(this)
+        is AppwriteException -> when (code) {
+            // 401/403: the session lacks permission for this resource — usually a Console-side
+            // permission or bucket fileSecurity setting, not a transport problem.
+            401, 403 -> AppError.Unexpected(this)
+            else -> AppError.Network(this)
+        }
         is FileNotFoundException -> AppError.ClipFileMissing
         is SQLiteException -> AppError.Database(this)
         is IOException -> if (isOutOfSpace()) AppError.OutOfSpace else AppError.Storage(this)
