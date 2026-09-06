@@ -159,6 +159,24 @@ class HomeViewModelTest {
         }
 
     @Test
+    fun `first play marks the clip preparing before the download and clears it on failure`() =
+        runTest(dispatcher) {
+            val vm = viewModel()
+            val target = clip("1", "a", isNew = true)
+            repository.clips.value = listOf(target)
+            repository.playableResult = DataResult.Failure(AppError.NoConnection)
+            advanceUntilIdle()
+
+            vm.onAction(HomeAction.TogglePlayback(target))
+            advanceUntilIdle()
+
+            // The card's spinner is driven off this: it has to be flipped before the fetch, and
+            // dropped again once the fetch fails.
+            assertEquals(listOf("1"), player.preparing)
+            assertTrue(player.stopCount > 0)
+        }
+
+    @Test
     fun `a playback failure does not mark the clip seen`() = runTest(dispatcher) {
         val vm = viewModel()
         val target = clip("1", "a", isNew = true)

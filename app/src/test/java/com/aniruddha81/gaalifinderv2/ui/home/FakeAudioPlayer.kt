@@ -16,7 +16,13 @@ class FakeAudioPlayer : AudioPlayer {
     var nextResult: DataResult<Unit> = DataResult.Success(Unit)
     val played = mutableListOf<String>()
     val paths = mutableListOf<String>()
+    val preparing = mutableListOf<String>()
     var stopCount = 0
+
+    override fun beginPreparing(clipId: String) {
+        preparing += clipId
+        _state.value = PlaybackState(clipId, PlaybackState.Status.Preparing)
+    }
 
     override suspend fun play(clipId: String, filePath: String): DataResult<Unit> {
         played += clipId

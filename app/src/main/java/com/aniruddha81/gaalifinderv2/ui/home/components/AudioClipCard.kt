@@ -49,6 +49,7 @@ import com.aniruddha81.gaalifinderv2.R
 import com.aniruddha81.gaalifinderv2.core.media.PlaybackState
 import com.aniruddha81.gaalifinderv2.domain.model.AudioClip
 import com.aniruddha81.gaalifinderv2.domain.model.ReactionType
+import com.aniruddha81.gaalifinderv2.ui.common.DownloadGlyph
 import com.aniruddha81.gaalifinderv2.ui.common.PlayStopGlyph
 import com.aniruddha81.gaalifinderv2.ui.common.WaveformBars
 import com.aniruddha81.gaalifinderv2.ui.common.formatDuration
@@ -317,11 +318,18 @@ private fun PlayButton(
                 .background(onAccent),
             contentAlignment = Alignment.Center,
         ) {
-            PlayStopGlyph(
-                isPlaying = isPlaying,
-                tint = accent,
-                size = 16.dp,
-            )
+            if (isPreparing) {
+                DownloadGlyph(
+                    tint = accent,
+                    size = 16.dp,
+                )
+            } else {
+                PlayStopGlyph(
+                    isPlaying = isPlaying,
+                    tint = accent,
+                    size = 16.dp,
+                )
+            }
         }
     }
 }

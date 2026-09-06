@@ -263,8 +263,13 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
+            // Show the card's spinner for the whole first-play download, not just the brief
+            // MediaPlayer prepare that play() would otherwise be the first to signal.
+            player.beginPreparing(clip.id)
+
             val path = when (val result = repository.ensurePlayable(clip)) {
                 is DataResult.Failure -> {
+                    player.stop() // clear the spinner the download was covering
                     emitError(result.error)
                     return@launch
                 }

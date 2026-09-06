@@ -38,6 +38,15 @@ interface AudioPlayer {
     val state: StateFlow<PlaybackState>
 
     /**
+     * Marks [clipId] as preparing, before its bytes are even in hand.
+     *
+     * The caller downloads the audio before it can call [play], and that download is the ~1s the
+     * user waits on first play. Flipping to `Preparing` up front lets the card show its spinner
+     * for that whole window instead of only for the brief MediaPlayer prepare afterwards.
+     */
+    fun beginPreparing(clipId: String)
+
+    /**
      * Starts [clipId] from [filePath], replacing whatever was playing.
      *
      * There is no `toggle` here on purpose: the caller has to fetch the audio before it can
@@ -95,6 +104,12 @@ class AudioPlayerController @Inject constructor(
             AudioManager.AUDIOFOCUS_GAIN ->
                 runCatching { player?.setVolume(FULL_VOLUME, FULL_VOLUME) }
         }
+    }
+
+    override fun beginPreparing(clipId: String) {
+        // A plain state write, no player transition, so it needs neither the mutex nor a
+        // coroutine — the following play() call still tears down any current player under lock.
+        _state.value = PlaybackState(clipId = clipId, status = PlaybackState.Status.Preparing)
     }
 
     override suspend fun play(clipId: String, filePath: String): DataResult<Unit> = mutex.withLock {
