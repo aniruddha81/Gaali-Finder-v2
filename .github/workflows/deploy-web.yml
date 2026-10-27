@@ -60,3 +60,16 @@ jobs:
           gh release create web-latest dist/* --prerelease --target "$GITHUB_SHA" \
             --title "Web build ${GITHUB_SHA::7}" \
             --notes "Built from $GITHUB_SHA. The VM installs it within a minute."
+
+      # The deploy key is locked to one forced command on the VM (the updater), so whatever is
+      # typed here is ignored: this just wakes the updater instead of waiting for its timer.
+      - name: Install on the VM
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+          TARGET: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 "$TARGET"

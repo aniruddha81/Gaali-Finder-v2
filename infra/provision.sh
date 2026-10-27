@@ -5,15 +5,16 @@
 #
 # Needs: the `oci` CLI logged in, and
 #   DOMAIN       API hostname that will point at the VM, e.g. api.example.com
-#   ADMIN_CIDR   the only address allowed to SSH in, e.g. 203.0.113.7/32
 #   ALERT_EMAIL  where the budget alert goes
-# Optional: SSH_PUBKEY (default ~/.ssh/gaali_vm.pub; generated if missing), SHAPE=micro to use
+# Optional: ADMIN_CIDR restricts SSH to one address, e.g. 203.0.113.7/32 (default: anywhere, so
+# GitHub Actions and a changing home IP can reach it; sshd is key-only and fail2ban is on), SSH_PUBKEY (default ~/.ssh/gaali_vm.pub; generated if missing), SHAPE=micro to use
 # the AMD micro fallback when Mumbai has no A1 capacity, RETRIES (default 60, one per minute).
 #
 # Safe to re-run: every step looks the resource up by name first.
 set -euo pipefail
 
-: "${DOMAIN:?set DOMAIN}" "${ADMIN_CIDR:?set ADMIN_CIDR}" "${ALERT_EMAIL:?set ALERT_EMAIL}"
+: "${DOMAIN:?set DOMAIN}" "${ALERT_EMAIL:?set ALERT_EMAIL}"
+ADMIN_CIDR=${ADMIN_CIDR:-0.0.0.0/0}
 SSH_PUBKEY=${SSH_PUBKEY:-$HOME/.ssh/gaali_vm.pub}
 RETRIES=${RETRIES:-60}
 here=$(cd "$(dirname "$0")" && pwd)

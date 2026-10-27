@@ -20,8 +20,8 @@ trap 'rm -rf "$tmp"' EXIT
 # No release yet (or it is being republished this second): nothing to do.
 curl -fsSL --max-time 30 -o "$tmp/sum" "$base/gaali-server-linux-$arch.sha256" || exit 0
 want=$(cut -d' ' -f1 "$tmp/sum")
-[ "$want" = "$(sha256sum "$installed" | cut -d' ' -f1)" ] && exit 0
-[ "$want" = "$(cat "$bad" 2>/dev/null || true)" ] && exit 0
+[ "$want" = "$(sha256sum "$installed" | cut -d' ' -f1)" ] && { echo "already up to date"; exit 0; }
+[ "$want" = "$(cat "$bad" 2>/dev/null || true)" ] && { echo "build $want failed before; not retrying" >&2; exit 0; }
 
 curl -fsSL --max-time 300 -o "$tmp/server" "$base/gaali-server-linux-$arch"
 [ "$(sha256sum "$tmp/server" | cut -d' ' -f1)" = "$want" ] || { echo "checksum mismatch, not installing" >&2; exit 1; }

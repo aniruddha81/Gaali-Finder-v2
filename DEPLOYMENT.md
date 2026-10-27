@@ -215,13 +215,13 @@ sequenceDiagram
 
 | File | What it does |
 | --- | --- |
-| `provision.sh` | Creates the $1 budget alert, compartment `gaali`, VCN (80/443 open, SSH only from your IP), the VM, the `gaali-backups` bucket and the instance-principal policy. Safe to re-run |
+| `provision.sh` | Creates the $1 budget alert, compartment `gaali`, VCN (80, 443 and SSH open to all; sshd is key-only and fail2ban is on), the VM, the `gaali-backups` bucket and the instance-principal policy. Safe to re-run |
 | `cloud-init.yaml` | First-boot setup: Caddy, rclone, firewall (ufw + fail2ban), unattended upgrades, systemd units, swap, env files |
 | `deploy.sh` | Runs the tests, cross-compiles for the VM's architecture, uploads the one binary, restarts, checks health |
 
-Rebuild from nothing: `DOMAIN=api.aniruddha81.tech ADMIN_CIDR=<ip>/32 ALERT_EMAIL=<you> infra/provision.sh`,
+Rebuild from nothing: `DOMAIN=api.aniruddha81.tech ALERT_EMAIL=<you> infra/provision.sh`,
 point the DNS record at the printed IP, fill in `/etc/gaali/api.env`, then `infra/deploy.sh ubuntu@<ip>`.
-SSH is `ssh gaali` (alias in `~/.ssh/config`); your IP may change, then update the security list.
+SSH is `ssh gaali` (alias in `~/.ssh/config`) and works from any address, so a changing home IP is fine.
 
 Secrets live only in `/etc/gaali/api.env` on the VM (`JWT_SECRET`, `GOOGLE_WEB_CLIENT_ID`,
 `RESEND_API_KEY`, `BREVO_API_KEY`, `MAIL_FROM`, `MAIL_FROM_NAME`, `MAIL_REPLY_TO`).
@@ -245,14 +245,19 @@ Pushing to the `release` branch deploys the server and web pages. The workflow
 tests, builds the Linux binaries and publishes them as the `web-latest` release. The VM never accepts
 SSH from GitHub, so it pulls instead: `gaali-update.timer` checks every minute, verifies the
 checksum, installs, restarts, and rolls back (remembering the bad build) if `/healthz` fails.
-Expect a deploy about 2-3 minutes after the push. No secrets are involved.
+After publishing, the workflow also SSHes in with a dedicated deploy key to run the updater at once
+instead of waiting for the timer. That key's line in `authorized_keys` is locked to one forced
+command (`sudo /usr/local/bin/gaali-update`, no shell, no port forwarding), so a leaked key can do
+nothing but re-run the updater. Repository secrets: `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`,
+`DEPLOY_HOST`, `DEPLOY_USER`. Expect a deploy about 2-3 minutes after the push.
 
 ```sh
 git push origin main:release     # ship what is on main
 sudo journalctl -u gaali-update -n 20   # on the VM: what the updater did
 ```
 
-Set up once per VM with `infra/enable-auto-deploy.sh ubuntu@<ip>`. Manual `infra/deploy.sh` still
+Set up once per VM with `infra/enable-auto-deploy.sh ubuntu@<ip>` (installs the updater, its timer
+and the locked deploy key). Manual `infra/deploy.sh` still
 works. Also protect `release` in GitHub (Settings, Branches) so only you can push to it: whoever can
 push there can ship code to the server.
 
