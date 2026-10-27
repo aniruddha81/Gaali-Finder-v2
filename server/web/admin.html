@@ -1,0 +1,589 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Gaali Console</title>
+    <style>
+      :root {
+        --bg: #0b0d12;
+        --panel: #131720;
+        --panel2: #181d28;
+        --line: #232a38;
+        --text: #e6e9ef;
+        --mute: #8b93a7;
+        --acc: #6c8cff;
+        --ok: #2fd28a;
+        --warn: #f5b73d;
+        --bad: #ff5d6c;
+        --c1: #6c8cff;
+        --c2: #2fd28a;
+        --c3: #f5b73d;
+        --c4: #ff5d6c;
+        color-scheme: dark;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f4f6fa;
+          --panel: #fff;
+          --panel2: #f0f2f7;
+          --line: #dfe3ec;
+          --text: #161a23;
+          --mute: #667089;
+          --acc: #3a5bff;
+          --ok: #12a266;
+          --warn: #c98a00;
+          --bad: #d6354a;
+          --c1: #3a5bff;
+          --c2: #12a266;
+          --c3: #c98a00;
+          --c4: #d6354a;
+          color-scheme: light;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          14px/1.45 system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      input,
+      select {
+        background: var(--panel2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 9px 11px;
+        width: 100%;
+      }
+      input:focus,
+      select:focus,
+      button:focus-visible {
+        outline: 2px solid var(--acc);
+        outline-offset: 1px;
+      }
+      button {
+        cursor: pointer;
+        background: var(--acc);
+        color: #fff;
+        border: 0;
+        border-radius: 8px;
+        padding: 9px 14px;
+        font-weight: 600;
+      }
+      button.ghost {
+        background: var(--panel2);
+        color: var(--text);
+        border: 1px solid var(--line);
+      }
+      #login {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 16px;
+      }
+      #login form {
+        width: 100%;
+        max-width: 360px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 26px;
+        display: grid;
+        gap: 12px;
+      }
+      #login h1 {
+        margin: 0 0 2px;
+        font-size: 20px;
+      }
+      .mute {
+        color: var(--mute);
+      }
+      .small {
+        font-size: 12px;
+      }
+      .err {
+        color: var(--bad);
+        min-height: 1.3em;
+        font-size: 13px;
+      }
+      #app {
+        display: grid;
+        grid-template-columns: 210px 1fr;
+        min-height: 100vh;
+      }
+      aside {
+        background: var(--panel);
+        border-right: 1px solid var(--line);
+        padding: 18px 12px;
+        position: sticky;
+        top: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      aside .brand {
+        font-weight: 700;
+        font-size: 16px;
+        padding: 4px 10px 14px;
+      }
+      aside a {
+        display: block;
+        padding: 9px 12px;
+        border-radius: 8px;
+        color: var(--mute);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      aside a:hover {
+        background: var(--panel2);
+        color: var(--text);
+      }
+      aside a.on {
+        background: var(--panel2);
+        color: var(--text);
+        box-shadow: inset 3px 0 var(--acc);
+      }
+      aside .sp {
+        flex: 1;
+      }
+      main {
+        padding: 18px 22px 40px;
+        min-width: 0;
+      }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      header h2 {
+        margin: 0;
+        font-size: 20px;
+        flex: 1;
+      }
+      header select {
+        width: auto;
+      }
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        padding: 5px 11px;
+        border-radius: 99px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: var(--mute);
+      }
+      .dot.ok {
+        background: var(--ok);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 25%, transparent);
+      }
+      .dot.warn {
+        background: var(--warn);
+      }
+      .dot.bad {
+        background: var(--bad);
+      }
+      .grid {
+        display: grid;
+        gap: 12px;
+      }
+      .cards {
+        grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+        margin-bottom: 12px;
+      }
+      .charts {
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+        margin-bottom: 12px;
+      }
+      .two {
+        grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+        margin-bottom: 12px;
+      }
+      .card,
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 16px;
+        min-width: 0;
+      }
+      .card .k {
+        color: var(--mute);
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .card .v {
+        font-size: 25px;
+        font-weight: 700;
+        margin: 3px 0 1px;
+        font-variant-numeric: tabular-nums;
+      }
+      .card .s {
+        color: var(--mute);
+        font-size: 12px;
+        min-height: 1.2em;
+      }
+      .panel h3 {
+        margin: 0 0 10px;
+        font-size: 14px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+      }
+      .legend {
+        display: flex;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--mute);
+        font-weight: 400;
+      }
+      .legend i {
+        display: inline-block;
+        width: 9px;
+        height: 9px;
+        border-radius: 2px;
+        margin-right: 5px;
+      }
+      canvas {
+        width: 100%;
+        height: 170px;
+        display: block;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 7px 8px;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      th {
+        color: var(--mute);
+        font-weight: 500;
+        font-size: 12px;
+      }
+      td.r,
+      th.r {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      .scroll {
+        overflow: auto;
+        max-height: 430px;
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      .s2 {
+        color: var(--ok);
+      }
+      .s3 {
+        color: var(--mute);
+      }
+      .s4 {
+        color: var(--warn);
+      }
+      .s5 {
+        color: var(--bad);
+      }
+      .bar {
+        height: 8px;
+        background: var(--panel2);
+        border-radius: 5px;
+        overflow: hidden;
+        margin-top: 6px;
+      }
+      .bar > div {
+        height: 100%;
+        background: var(--acc);
+        border-radius: 5px;
+      }
+      .bar.warn > div {
+        background: var(--warn);
+      }
+      .bar.bad > div {
+        background: var(--bad);
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 6px 18px;
+        font-size: 13px;
+      }
+      .kv span:nth-child(odd) {
+        color: var(--mute);
+      }
+      .kv span:nth-child(even) {
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      pre {
+        margin: 0;
+        max-height: 560px;
+        overflow: auto;
+        font:
+          12px/1.5 ui-monospace,
+          Consolas,
+          monospace;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .tools {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+      .tools input {
+        max-width: 320px;
+      }
+      .tag {
+        padding: 1px 7px;
+        border-radius: 99px;
+        font-size: 11px;
+        background: var(--panel2);
+        border: 1px solid var(--line);
+      }
+      @media (max-width: 760px) {
+        #app {
+          grid-template-columns: 1fr;
+        }
+        aside {
+          position: static;
+          height: auto;
+          flex-direction: row;
+          flex-wrap: wrap;
+          padding: 8px;
+        }
+        aside .brand,
+        aside .sp {
+          display: none;
+        }
+        main {
+          padding: 14px 12px 30px;
+        }
+        .charts {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="login" hidden>
+      <form id="loginForm" autocomplete="on">
+        <h1>Gaali Console</h1>
+        <div class="mute small">
+          Admin sign-in. Use the e-mail and password of your Gaali Finder
+          account. Google-only accounts: set a password first with "Forgot
+          password" in the app.
+        </div>
+        <input
+          id="email"
+          type="email"
+          placeholder="Email"
+          autocomplete="username"
+          required
+        />
+        <input
+          id="password"
+          type="password"
+          placeholder="Password"
+          autocomplete="current-password"
+          required
+        />
+        <div class="err" id="loginErr" role="alert"></div>
+        <button type="submit">Sign in</button>
+      </form>
+    </div>
+
+    <div id="app" hidden>
+      <aside>
+        <div class="brand">Gaali Console</div>
+        <a href="#overview" data-page="overview">Overview</a>
+        <a href="#database" data-page="database">Database</a>
+        <a href="#requests" data-page="requests">Requests</a>
+        <a href="#content" data-page="content">Users &amp; content</a>
+        <a href="#logs" data-page="logs">Logs</a>
+        <div class="sp"></div>
+        <button class="ghost" id="signOut" type="button">Sign out</button>
+      </aside>
+
+      <main>
+        <header>
+          <h2 id="title">Overview</h2>
+          <span class="pill" id="health" title=""
+            ><span class="dot" id="healthDot"></span
+            ><span id="healthText">Connecting…</span></span
+          >
+          <span class="mute small" id="meta"></span>
+          <select id="interval" aria-label="Refresh interval">
+            <option value="2000">Live · 2s</option>
+            <option value="5000" selected>5s</option>
+            <option value="15000">15s</option>
+            <option value="0">Paused</option>
+          </select>
+        </header>
+
+        <section data-page="overview">
+          <div class="grid cards" id="cards"></div>
+          <div class="grid charts">
+            <div class="panel">
+              <h3>
+                Requests
+                <span class="legend"
+                  ><span
+                    ><i style="background: var(--c1)"></i>requests / 5s</span
+                  ><span><i style="background: var(--c4)"></i>5xx</span></span
+                >
+              </h3>
+              <canvas id="chReq"></canvas>
+            </div>
+            <div class="panel">
+              <h3>
+                Latency
+                <span class="legend"
+                  ><span
+                    ><i style="background: var(--c3)"></i>avg request ms</span
+                  ><span
+                    ><i style="background: var(--c2)"></i>DB ping ms</span
+                  ></span
+                >
+              </h3>
+              <canvas id="chLat"></canvas>
+            </div>
+            <div class="panel">
+              <h3>
+                Host
+                <span class="legend"
+                  ><span><i style="background: var(--c1)"></i>CPU %</span
+                  ><span
+                    ><i style="background: var(--c2)"></i>memory %</span
+                  ></span
+                >
+              </h3>
+              <canvas id="chHost"></canvas>
+            </div>
+            <div class="panel">
+              <h3>
+                Go runtime
+                <span class="legend"
+                  ><span><i style="background: var(--c1)"></i>heap MB</span
+                  ><span
+                    ><i style="background: var(--c3)"></i>goroutines</span
+                  ></span
+                >
+              </h3>
+              <canvas id="chGo"></canvas>
+            </div>
+          </div>
+          <div class="grid two" id="resources"></div>
+        </section>
+
+        <section data-page="database" hidden>
+          <div class="grid cards" id="dbCards"></div>
+          <div class="grid two">
+            <div class="panel">
+              <h3>Tables</h3>
+              <div class="scroll" id="tables"></div>
+            </div>
+            <div class="panel">
+              <h3>Storage &amp; connection pool</h3>
+              <div class="kv" id="dbKv"></div>
+            </div>
+          </div>
+        </section>
+
+        <section data-page="requests" hidden>
+          <div class="grid cards" id="reqCards"></div>
+          <div class="grid two">
+            <div class="panel">
+              <h3>Routes since start</h3>
+              <div class="scroll" id="routes"></div>
+            </div>
+            <div class="panel">
+              <h3>Latest requests</h3>
+              <div class="tools">
+                <input
+                  id="reqFilter"
+                  placeholder="Filter by path, status, IP…"
+                  aria-label="Filter requests"
+                />
+              </div>
+              <div class="scroll" id="recent"></div>
+            </div>
+          </div>
+        </section>
+
+        <section data-page="content" hidden>
+          <div class="grid cards" id="userCards"></div>
+          <div class="grid two">
+            <div class="panel">
+              <h3>Newest sign-ups</h3>
+              <div class="scroll" id="signups"></div>
+            </div>
+            <div class="panel">
+              <h3>Newest clips</h3>
+              <div class="scroll" id="clips"></div>
+            </div>
+          </div>
+          <div class="grid two">
+            <div class="panel">
+              <h3>Top uploaders</h3>
+              <div class="scroll" id="top"></div>
+            </div>
+            <div class="panel">
+              <h3>Mail</h3>
+              <div class="kv" id="mailKv"></div>
+            </div>
+          </div>
+        </section>
+
+        <section data-page="logs" hidden>
+          <div class="tools">
+            <input
+              id="logFilter"
+              placeholder="Filter log lines…"
+              aria-label="Filter logs"
+            />
+          </div>
+          <div class="panel"><pre id="logs"></pre></div>
+        </section>
+      </main>
+    </div>
+
+    <script src="/admin.js"></script>
+  </body>
+</html>

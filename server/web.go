@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-//go:embed web/*.html web/logo.png
+//go:embed web/*.html web/*.js web/logo.png
 var webFS embed.FS
 
 // staticPage serves one embedded HTML page: the public home, privacy and terms pages that

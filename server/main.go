@@ -44,6 +44,7 @@ type config struct {
 	replyTo        string // optional Reply-To so recipients can answer a "no-reply" style sender
 	mailFrom       string
 	mailFromName   string
+	adminEmails    []string // who may open the admin console; empty = nobody
 }
 
 func loadConfig() config {
@@ -64,6 +65,7 @@ func loadConfig() config {
 		replyTo:        os.Getenv("MAIL_REPLY_TO"),
 		mailFrom:       get("MAIL_FROM", "no-reply@example.com"),
 		mailFromName:   get("MAIL_FROM_NAME", "Gaali Finder"),
+		adminEmails:    parseEmails(os.Getenv("ADMIN_EMAILS")),
 	}
 	if len(c.jwtSecret) < 32 {
 		log.Fatal("JWT_SECRET must be set to at least 32 characters")
@@ -76,6 +78,7 @@ type server struct {
 	db       *sql.DB
 	audioDir string
 	lim      *limiter
+	stats    *stats
 
 	// Swappable so tests need neither Brevo nor Google.
 	mail         func(to, subject, htmlBody, textBody string) error
@@ -89,7 +92,7 @@ type server struct {
 }
 
 func newServer(cfg config, db *sql.DB) (*server, error) {
-	s := &server{cfg: cfg, db: db, audioDir: filepath.Join(cfg.dataDir, "audio"), lim: &limiter{hits: map[string][]time.Time{}}}
+	s := &server{cfg: cfg, db: db, audioDir: filepath.Join(cfg.dataDir, "audio"), lim: &limiter{hits: map[string][]time.Time{}}, stats: newStats()}
 	if err := os.MkdirAll(s.audioDir, 0o755); err != nil {
 		return nil, err
 	}
@@ -136,7 +139,11 @@ func (s *server) routes() http.Handler {
 	m.HandleFunc("POST /v1/clips", s.authed(s.uploadClip))
 	m.HandleFunc("DELETE /v1/clips/{id}", s.authed(s.deleteClip))
 	m.HandleFunc("PUT /v1/clips/{id}/reaction", s.authed(s.setReaction))
-	return securityHeaders(m)
+
+	m.HandleFunc("GET /admin", adminAsset("admin.html", "text/html; charset=utf-8"))
+	m.HandleFunc("GET /admin.js", adminAsset("admin.js", "text/javascript; charset=utf-8"))
+	m.HandleFunc("GET /v1/admin/metrics", s.adminOnly(s.adminMetrics))
+	return securityHeaders(s.track(m))
 }
 
 func main() {
@@ -162,6 +169,10 @@ func main() {
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       2 * time.Minute,
 	}
+	log.SetOutput(logTee{s.stats, os.Stderr})
+	sampling, stopSampling := context.WithCancel(context.Background())
+	defer stopSampling()
+	go s.sampleLoop(sampling)
 	go func() {
 		stop := make(chan os.Signal, 1)
 		signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
