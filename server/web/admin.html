@@ -377,6 +377,96 @@
         background: var(--panel2);
         border: 1px solid var(--line);
       }
+      .tools {
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .tools select {
+        width: auto;
+      }
+      .big {
+        max-height: 68vh;
+      }
+      textarea {
+        width: 100%;
+        background: var(--panel2);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font: 13px/1.5 ui-monospace, Consolas, monospace;
+        color: inherit;
+        resize: vertical;
+      }
+      button.danger {
+        background: var(--bad);
+      }
+      button.sm {
+        padding: 3px 9px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+      td.act div {
+        display: flex;
+        gap: 6px;
+      }
+      th.sortable {
+        cursor: pointer;
+        user-select: none;
+      }
+      td .cell {
+        display: inline-block;
+        max-width: 280px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        vertical-align: bottom;
+      }
+      a {
+        color: var(--acc);
+      }
+      dialog {
+        background: var(--panel);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 20px;
+        width: min(560px, 94vw);
+      }
+      dialog::backdrop {
+        background: rgba(0, 0, 0, 0.55);
+      }
+      dialog h3 {
+        margin: 0 0 12px;
+      }
+      .fields {
+        display: grid;
+        gap: 10px;
+        max-height: 58vh;
+        overflow: auto;
+        padding-right: 4px;
+      }
+      .fields label {
+        display: grid;
+        gap: 4px;
+        font-size: 12px;
+        color: var(--mute);
+      }
+      .fields .line {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .fields .line input[type="checkbox"] {
+        width: auto;
+      }
+      .fields input:disabled {
+        opacity: 0.55;
+      }
+      .row {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 14px;
+      }
       @media (max-width: 760px) {
         #app {
           grid-template-columns: 1fr;
@@ -436,6 +526,8 @@
         <a href="#database" data-page="database">Database</a>
         <a href="#requests" data-page="requests">Requests</a>
         <a href="#content" data-page="content">Users &amp; content</a>
+        <a href="#data" data-page="data">Data</a>
+        <a href="#sql" data-page="sql">SQL</a>
         <a href="#logs" data-page="logs">Logs</a>
         <div class="sp"></div>
         <button class="ghost" id="signOut" type="button">Sign out</button>
@@ -524,6 +616,61 @@
               <div class="kv" id="dbKv"></div>
             </div>
           </div>
+          <div class="panel" style="margin-top: 12px">
+            <h3>
+              Audio files
+              <span>
+                <button class="ghost sm" id="orphScan" type="button">Scan</button>
+                <button class="danger sm" id="orphClean" type="button" hidden>
+                  Delete orphan files
+                </button>
+              </span>
+            </h3>
+            <div class="mute" id="orphOut">
+              Compares the audio folder with the clips table.
+            </div>
+          </div>
+        </section>
+
+        <section data-page="data" hidden>
+          <div class="tools">
+            <select id="dtTable" aria-label="Table"></select>
+            <input
+              id="dtSearch"
+              placeholder="Search every column…"
+              aria-label="Search rows"
+            />
+            <button class="ghost" id="dtRefresh" type="button">Refresh</button>
+            <button id="dtAdd" type="button" hidden>Add row</button>
+            <span class="mute small" id="dtInfo"></span>
+            <span style="flex: 1"></span>
+            <button class="ghost" id="dtPrev" type="button">‹ Prev</button>
+            <button class="ghost" id="dtNext" type="button">Next ›</button>
+          </div>
+          <div class="err" id="dtErr" role="alert"></div>
+          <div class="panel"><div class="scroll big" id="dtGrid"></div></div>
+        </section>
+
+        <section data-page="sql" hidden>
+          <div class="panel">
+            <textarea
+              id="sqlText"
+              rows="6"
+              spellcheck="false"
+              aria-label="SQL statement"
+              placeholder="One statement, e.g. SELECT * FROM users LIMIT 20"
+            ></textarea>
+            <div class="tools" style="margin: 10px 0 0">
+              <button id="sqlDry" type="button">Run (changes rolled back)</button>
+              <button class="danger" id="sqlRun" type="button">Run &amp; save changes</button>
+              <span class="mute small" id="sqlMsg"></span>
+            </div>
+          </div>
+          <div class="panel" style="margin-top: 12px">
+            <div class="scroll big" id="sqlOut">
+              <span class="mute">Results appear here.</span>
+            </div>
+          </div>
         </section>
 
         <section data-page="requests" hidden>
@@ -583,6 +730,18 @@
         </section>
       </main>
     </div>
+
+    <dialog id="dlg">
+      <form id="dlgForm">
+        <h3 id="dlgTitle"></h3>
+        <div class="fields" id="dlgFields"></div>
+        <div class="err" id="dlgErr" role="alert"></div>
+        <div class="row">
+          <button class="ghost" id="dlgCancel" type="button">Cancel</button>
+          <button type="submit">Save</button>
+        </div>
+      </form>
+    </dialog>
 
     <script src="/admin.js"></script>
   </body>

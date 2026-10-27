@@ -211,7 +211,7 @@ func (s *server) takeSample() {
 
 // adminOnly lets through a valid access token whose account is a verified e-mail listed in
 // ADMIN_EMAILS. With that variable empty nobody gets in.
-func (s *server) adminOnly(fn func(http.ResponseWriter, *http.Request) error) http.HandlerFunc {
+func (s *server) adminOnly(fn func(http.ResponseWriter, *http.Request, userDTO) error) http.HandlerFunc {
 	return s.authed(func(w http.ResponseWriter, r *http.Request, uid string) error {
 		u, err := loadUser(r.Context(), s.db, uid)
 		if err != nil {
@@ -220,7 +220,7 @@ func (s *server) adminOnly(fn func(http.ResponseWriter, *http.Request) error) ht
 		if !u.EmailVerified || !s.cfg.isAdmin(u.Email) {
 			return fail(http.StatusForbidden, "forbidden", "This account is not an admin.")
 		}
-		return fn(w, r)
+		return fn(w, r, u)
 	})
 }
 
@@ -263,7 +263,7 @@ func adminAsset(name, contentType string) http.HandlerFunc {
 
 // ---- metrics ----
 
-func (s *server) adminMetrics(w http.ResponseWriter, r *http.Request) error {
+func (s *server) adminMetrics(w http.ResponseWriter, r *http.Request, _ userDTO) error {
 	since, _ := strconv.ParseInt(r.URL.Query().Get("since"), 10, 64)
 	heavy, err := s.heavyStats(r.Context())
 	if err != nil {

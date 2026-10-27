@@ -273,6 +273,18 @@ in on the page with that account's e-mail and password; the e-mail must be verif
 account has no password, so use "Forgot password" in the app once to set one. With the variable
 empty nobody can use the console, and the page itself shows nothing without a valid admin token.
 
+**Editing data.** The *Data* page shows every table (search, sort, paging) and lets the admin edit a
+row, add a row (users, plans, reactions), or delete one; *Password* sets a user's password and signs
+them out, *Sign out* revokes their sessions. Deleting a clip or a user also deletes the audio files,
+and renaming a user updates the name stored on their clips. Password hashes are never shown, and
+primary keys, blobs, `clips.storage_key` and the migration/audit tables cannot be edited as rows.
+The *SQL* page runs one statement at a time: "Run" executes it inside a transaction that is rolled
+back (a dry run showing what would change), "Run & save" keeps it. Statements that would leave the
+transaction (BEGIN, COMMIT, VACUUM, ATTACH) and writes touching the audit log are refused. SQL
+deletes do not remove audio files; *Database > Audio files > Scan* finds and removes the leftovers.
+Every write is recorded in the `admin_audit` table (who, what, and the previous values), which the
+Data page shows read-only. Back up before bulk edits: the nightly backup is the undo button.
+
 ## Email
 
 The API sends two mails, verification and password reset, in the background with one retry, capped

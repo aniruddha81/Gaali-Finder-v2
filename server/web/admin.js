@@ -42,10 +42,19 @@
     } catch { return false; } finally { refreshing = null; }
   })();
 
-  async function api(path, retry = true) {
-    const r = await fetch(path, { headers: { Authorization: 'Bearer ' + (tok?.access || '') }, cache: 'no-store' });
-    if (r.status === 401 && retry && tok?.refresh && await refresh()) return api(path, false);
+  async function api(path, opts = {}, retry = true) {
+    const headers = { Authorization: 'Bearer ' + (tok?.access || ''), ...(opts.body ? { 'Content-Type': 'application/json' } : {}) };
+    const r = await fetch(path, { ...opts, headers, cache: 'no-store' });
+    if (r.status === 401 && retry && tok?.refresh && await refresh()) return api(path, opts, false);
     return r;
+  }
+  // call returns the decoded JSON body, or throws the server's message so the UI can show it.
+  async function call(path, body) {
+    const r = await api(path, body === undefined ? {} : { method: 'POST', body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (r.status === 403 && j.error === 'forbidden') { save(null); showLogin('This account is not an admin.'); }
+    if (!r.ok) throw new Error(j.message || 'Request failed (' + r.status + ')');
+    return j;
   }
 
   function showLogin(msg = '') {
@@ -82,6 +91,7 @@
     $('#login').hidden = true;
     $('#app').hidden = false;
     hist = []; lastT = 0; data = null;
+    dt.tables = [];
     route();
     tick();
     schedule();
@@ -116,7 +126,7 @@
   document.addEventListener('visibilitychange', () => { if (!document.hidden && tok) tick(); });
 
   // ---- navigation ----
-  const titles = { overview: 'Overview', database: 'Database', requests: 'Requests', content: 'Users & content', logs: 'Logs' };
+  const titles = { overview: 'Overview', database: 'Database', requests: 'Requests', content: 'Users & content', data: 'Data', sql: 'SQL console', logs: 'Logs' };
   let page = 'overview';
   function route() {
     const p = location.hash.slice(1);
@@ -124,6 +134,7 @@
     $$('section[data-page]').forEach(s => s.hidden = s.dataset.page !== page);
     $$('aside a').forEach(a => a.classList.toggle('on', a.dataset.page === page));
     $('#title').textContent = titles[page];
+    if (page === 'data' && !dt.tables.length) loadTables();
     if (data) render();
   }
   addEventListener('hashchange', route);
@@ -378,6 +389,175 @@
     chart('chHost', [{ data: col(s => s.cpu), color: '--c1', label: 'CPU' }, { data: col(s => s.mem), color: '--c2', label: 'memory' }], v => Math.round(v) + '%', 100);
     chart('chGo', [{ data: col(s => s.heap / 1048576), color: '--c1', label: 'heap' }, { data: col(s => s.gor), color: '--c3', label: 'goroutines' }], v => (v >= 10 ? Math.round(v) : v.toFixed(1)));
   }
+
+  // ---- data browser: every table, with edit / add / delete ----
+  const dt = { tables: [], name: '', meta: null, rows: [], total: 0, offset: 0, limit: 50, sort: '', dir: 'desc' };
+  const TIME_COL = /(^at|_at)$/;
+  const cellHtml = (col, v, table) => {
+    if (v === null) return '<span class="mute">NULL</span>';
+    if (TIME_COL.test(col.name) && typeof v === 'number' && v > 0) return `<span title="${esc(v)}">${esc(new Date(v).toLocaleString())}</span>`;
+    if (table === 'clips' && col.name === 'storage_key') return `<a href="/files/${encodeURIComponent(v)}" target="_blank" rel="noopener">▶ ${esc(v)}</a>`;
+    const s = String(v);
+    return `<span class="cell" title="${esc(s)}">${esc(s.length > 80 ? s.slice(0, 80) + '…' : s)}</span>`;
+  };
+  const rowKey = (meta, row) => Object.fromEntries(meta.columns.map((c, i) => [c, i]).filter(([c]) => c.pk > 0).map(([c, i]) => [c.name, row[i]]));
+  const dtError = msg => { $('#dtErr').textContent = msg || ''; };
+
+  async function loadTables() {
+    try {
+      dt.tables = (await call('/v1/admin/tables')).tables;
+      const sel = $('#dtTable');
+      sel.innerHTML = dt.tables.map(t => `<option value="${esc(t.name)}">${esc(t.name)} (${n0(t.rows)})</option>`).join('');
+      if (!dt.tables.some(t => t.name === dt.name)) dt.name = dt.tables.find(t => t.name === 'users')?.name || dt.tables[0]?.name || '';
+      sel.value = dt.name;
+      await loadRows();
+    } catch (e) { dtError(e.message); }
+  }
+
+  async function loadRows() {
+    if (!dt.name) return;
+    const p = new URLSearchParams({ limit: dt.limit, offset: dt.offset, q: $('#dtSearch').value.trim() });
+    if (dt.sort) { p.set('sort', dt.sort); p.set('dir', dt.dir); }
+    try {
+      const j = await call(`/v1/admin/tables/${encodeURIComponent(dt.name)}?${p}`);
+      Object.assign(dt, { meta: j.table, rows: j.rows, total: j.total });
+      dtError('');
+      renderGrid();
+    } catch (e) { dtError(e.message); }
+  }
+
+  function renderGrid() {
+    const { meta, rows } = dt;
+    const t = dt.tables.find(x => x.name === dt.name);
+    $('#dtAdd').hidden = !meta.canInsert;
+    $('#dtInfo').textContent = rows.length ? `${dt.offset + 1}–${dt.offset + rows.length} of ${n0(dt.total)}${meta.readOnly ? ' · read-only' : ''}` : (meta.readOnly ? 'read-only' : '');
+    $('#dtPrev').disabled = dt.offset === 0;
+    $('#dtNext').disabled = dt.offset + rows.length >= dt.total;
+    const arrow = c => dt.sort === c.name ? (dt.dir === 'asc' ? ' ▲' : ' ▼') : '';
+    const head = `<th></th>${meta.columns.map(c => `<th class="sortable" data-sort="${esc(c.name)}" title="${esc(c.type)}${c.pk ? ' · primary key' : ''}">${esc(c.name)}${arrow(c)}</th>`).join('')}`;
+    const body = rows.map((r, i) => {
+      const acts = meta.readOnly ? '' : [
+        `<button class="ghost sm" data-act="edit" data-i="${i}">Edit</button>`,
+        meta.name === 'users' ? `<button class="ghost sm" data-act="password" data-i="${i}">Password</button><button class="ghost sm" data-act="revoke" data-i="${i}">Sign out</button>` : '',
+        `<button class="danger sm" data-act="delete" data-i="${i}">Delete</button>`,
+      ].join('');
+      return `<tr><td class="act"><div>${acts}</div></td>${meta.columns.map((c, j) => `<td>${cellHtml(c, r[j], meta.name)}</td>`).join('')}</tr>`;
+    }).join('');
+    $('#dtGrid').innerHTML = rows.length ? `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>` : `<div class="mute">${dt.total || (t && t.rows) ? 'No rows match.' : 'This table is empty.'}</div>`;
+  }
+
+  $('#dtTable').addEventListener('change', e => { dt.name = e.target.value; dt.offset = 0; dt.sort = ''; loadRows(); });
+  $('#dtSearch').addEventListener('input', () => { clearTimeout(dt.timer); dt.timer = setTimeout(() => { dt.offset = 0; loadRows(); }, 250); });
+  $('#dtRefresh').addEventListener('click', loadTables);
+  $('#dtPrev').addEventListener('click', () => { dt.offset = Math.max(0, dt.offset - dt.limit); loadRows(); });
+  $('#dtNext').addEventListener('click', () => { dt.offset += dt.limit; loadRows(); });
+  $('#dtAdd').addEventListener('click', () => openForm('insert'));
+  $('#dtGrid').addEventListener('click', e => {
+    const th = e.target.closest('th[data-sort]');
+    if (th) {
+      dt.dir = dt.sort === th.dataset.sort && dt.dir === 'desc' ? 'asc' : 'desc';
+      dt.sort = th.dataset.sort; dt.offset = 0;
+      return loadRows();
+    }
+    const b = e.target.closest('button[data-act]');
+    if (b) rowAction(b.dataset.act, dt.rows[+b.dataset.i]);
+  });
+
+  async function changed(fn) {
+    try { await fn(); dtError(''); await loadTables(); } catch (e) { dtError(e.message); }
+  }
+
+  function rowAction(act, row) {
+    const { meta } = dt, key = rowKey(meta, row), label = `${meta.name} ${Object.values(key).join(' / ')}`;
+    const base = `/v1/admin/tables/${encodeURIComponent(meta.name)}`;
+    if (act === 'edit') return openForm('update', row);
+    if (act === 'delete') {
+      const extra = meta.name === 'users' ? '\n\nTheir clips, reactions, sessions and audio files are deleted too.' : meta.name === 'clips' ? '\n\nThe audio file is deleted too.' : '';
+      if (confirm(`Delete ${label}? This cannot be undone.${extra}`)) changed(() => call(base + '/delete', { key }));
+    } else if (act === 'revoke') {
+      if (confirm(`Sign ${row[meta.columns.findIndex(c => c.name === 'email')]} out of every device?`)) changed(() => call(`/v1/admin/users/${encodeURIComponent(key.id)}/revoke`, {}));
+    } else if (act === 'password') {
+      const pw = prompt('New password for this user (10-128 characters). Their sessions are signed out.');
+      if (pw) changed(() => call(`/v1/admin/users/${encodeURIComponent(key.id)}/password`, { password: pw }));
+    }
+  }
+
+  // The edit / add dialog: one field per column; locked columns are shown but cannot change.
+  function openForm(mode, row) {
+    const { meta } = dt, dlg = $('#dlg');
+    $('#dlgTitle').textContent = (mode === 'insert' ? 'Add row to ' : 'Edit row in ') + meta.name;
+    $('#dlgErr').textContent = '';
+    $('#dlgFields').innerHTML = meta.columns.map((c, i) => {
+      const v = row ? row[i] : null;
+      const locked = mode === 'insert' ? (c.type === 'BLOB' || (c.locked && !c.pk)) : c.locked;
+      if (mode === 'insert' && locked) return '';
+      const hint = TIME_COL.test(c.name) && typeof v === 'number' ? ` · ${new Date(v).toLocaleString()}` : (c.name === 'id' && mode === 'insert' ? ' · leave empty to generate' : '');
+      const nullBox = !c.notNull && !locked ? `<label class="line"><input type="checkbox" data-null="${i}" ${v === null ? 'checked' : ''}> NULL</label>` : '';
+      return `<label><span>${esc(c.name)} · ${esc(c.type.toLowerCase())}${c.pk ? ' · key' : ''}${c.notNull ? '' : ' · optional'}${esc(hint)}</span>
+        <span class="line"><input data-i="${i}" value="${esc(v ?? '')}" ${locked ? 'disabled' : ''} autocomplete="off">${nullBox}</span></label>`;
+    }).join('');
+    dlg.dataset.mode = mode;
+    dlg._row = row;
+    dlg.showModal();
+  }
+
+  $('#dlgCancel').addEventListener('click', () => $('#dlg').close());
+  $('#dlgForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const { meta } = dt, dlg = $('#dlg'), mode = dlg.dataset.mode, row = dlg._row;
+    const values = {};
+    $$('#dlgFields input[data-i]').forEach(inp => {
+      if (inp.disabled) return;
+      const i = +inp.dataset.i, nul = $(`input[data-null="${i}"]`)?.checked;
+      const old = row ? row[i] : null;
+      if (mode === 'update') {
+        if (nul ? old !== null : (old === null || String(old) !== inp.value)) values[meta.columns[i].name] = nul ? null : inp.value;
+      } else if (nul || inp.value !== '') values[meta.columns[i].name] = nul ? null : inp.value;
+    });
+    if (mode === 'update' && !Object.keys(values).length) { dlg.close(); return; }
+    try {
+      const base = `/v1/admin/tables/${encodeURIComponent(meta.name)}`;
+      await call(base + '/' + mode, mode === 'insert' ? { values } : { key: rowKey(meta, row), values });
+      dlg.close();
+      await loadTables();
+    } catch (err) { $('#dlgErr').textContent = err.message; }
+  });
+
+  // ---- SQL console ----
+  async function runSQL(write) {
+    const sql = $('#sqlText').value.trim();
+    if (!sql) return;
+    if (write && !confirm('Run this statement and keep its changes on the live database?')) return;
+    $('#sqlMsg').textContent = 'Running…';
+    try {
+      const j = await call('/v1/admin/sql', { sql, write });
+      const note = j.changes ? `${n0(j.changes)} row change${j.changes === 1 ? '' : 's'} ${j.committed ? 'saved' : 'rolled back (nothing was kept)'}` : `${n0(j.rows.length)} row${j.rows.length === 1 ? '' : 's'}${j.truncated ? ' (first 500 shown)' : ''}`;
+      $('#sqlMsg').textContent = note;
+      $('#sqlOut').innerHTML = j.columns.length
+        ? table(j.columns.map(c => [c]), j.rows.map(r => `<tr>${r.map(v => `<td>${v === null ? '<span class="mute">NULL</span>' : `<span class="cell" title="${esc(v)}">${esc(String(v).slice(0, 200))}</span>`}</td>`).join('')}</tr>`), 'No rows.')
+        : `<span class="mute">${esc(note)}</span>`;
+      if (j.committed) dt.tables = [];
+    } catch (e) {
+      $('#sqlMsg').textContent = '';
+      $('#sqlOut').innerHTML = `<span class="s5">${esc(e.message)}</span>`;
+    }
+  }
+  $('#sqlDry').addEventListener('click', () => runSQL(false));
+  $('#sqlRun').addEventListener('click', () => runSQL(true));
+  $('#sqlText').addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runSQL(false); });
+
+  // ---- orphaned audio files ----
+  async function scanOrphans(remove) {
+    try {
+      const j = await call('/v1/admin/orphans', remove ? {} : undefined);
+      const list = (title, a) => a.length ? `<div><b>${esc(title)} (${a.length})</b><br>${a.slice(0, 20).map(esc).join('<br>')}${a.length > 20 ? '<br>…' : ''}</div>` : '';
+      $('#orphOut').innerHTML = remove ? `Removed ${j.orphanFiles.length} file${j.orphanFiles.length === 1 ? '' : 's'}.`
+        : (list('Files with no clip in the database', j.orphanFiles) + list('Clips whose file is missing', j.missingFiles)) || 'All audio files match the clips table.';
+      $('#orphClean').hidden = remove || !j.orphanFiles.length;
+    } catch (e) { $('#orphOut').textContent = e.message; }
+  }
+  $('#orphScan').addEventListener('click', () => scanOrphans(false));
+  $('#orphClean').addEventListener('click', () => { if (confirm('Delete every audio file that no clip points at?')) scanOrphans(true); });
 
   tok ? start() : showLogin();
 })();

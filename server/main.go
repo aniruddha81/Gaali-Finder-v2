@@ -143,6 +143,16 @@ func (s *server) routes() http.Handler {
 	m.HandleFunc("GET /admin", adminAsset("admin.html", "text/html; charset=utf-8"))
 	m.HandleFunc("GET /admin.js", adminAsset("admin.js", "text/javascript; charset=utf-8"))
 	m.HandleFunc("GET /v1/admin/metrics", s.adminOnly(s.adminMetrics))
+	m.HandleFunc("GET /v1/admin/tables", s.adminOnly(s.adminTables))
+	m.HandleFunc("GET /v1/admin/tables/{table}", s.adminOnly(s.adminRows))
+	m.HandleFunc("POST /v1/admin/tables/{table}/insert", s.adminOnly(s.adminWrite("insert")))
+	m.HandleFunc("POST /v1/admin/tables/{table}/update", s.adminOnly(s.adminWrite("update")))
+	m.HandleFunc("POST /v1/admin/tables/{table}/delete", s.adminOnly(s.adminWrite("delete")))
+	m.HandleFunc("POST /v1/admin/users/{id}/password", s.adminOnly(s.adminSetPassword))
+	m.HandleFunc("POST /v1/admin/users/{id}/revoke", s.adminOnly(s.adminRevoke))
+	m.HandleFunc("GET /v1/admin/orphans", s.adminOnly(s.adminOrphans))
+	m.HandleFunc("POST /v1/admin/orphans", s.adminOnly(s.adminOrphans))
+	m.HandleFunc("POST /v1/admin/sql", s.adminOnly(s.adminSQL))
 	return securityHeaders(s.track(m))
 }
 
