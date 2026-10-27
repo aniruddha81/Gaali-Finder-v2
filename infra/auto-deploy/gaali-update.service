@@ -1,0 +1,8 @@
+[Unit]
+Description=Install the latest Gaali Finder server build from GitHub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/gaali-update

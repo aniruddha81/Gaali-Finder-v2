@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Installs the server binary that the "Deploy web" GitHub Action published as release `web-latest`.
+# Run every minute by gaali-update.timer. Does nothing when the binary is already current, and
+# rolls back (and remembers the bad build) when the new one does not come up healthy.
+set -euo pipefail
+
+repo=aniruddha81/Gaali-Finder-v2
+installed=/opt/gaali/server
+bad=/opt/gaali/bad-build
+
+case $(uname -m) in
+  aarch64) arch=arm64 ;;
+  x86_64)  arch=amd64 ;;
+  *) echo "unknown architecture" >&2; exit 1 ;;
+esac
+base=https://github.com/$repo/releases/download/web-latest
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
+# No release yet (or it is being republished this second): nothing to do.
+curl -fsSL --max-time 30 -o "$tmp/sum" "$base/gaali-server-linux-$arch.sha256" || exit 0
+want=$(cut -d' ' -f1 "$tmp/sum")
+[ "$want" = "$(sha256sum "$installed" | cut -d' ' -f1)" ] && exit 0
+[ "$want" = "$(cat "$bad" 2>/dev/null || true)" ] && exit 0
+
+curl -fsSL --max-time 300 -o "$tmp/server" "$base/gaali-server-linux-$arch"
+[ "$(sha256sum "$tmp/server" | cut -d' ' -f1)" = "$want" ] || { echo "checksum mismatch, not installing" >&2; exit 1; }
+
+cp "$installed" "$installed.prev"
+install -m 755 -o root -g root "$tmp/server" "$installed"
+systemctl restart gaali-api
+sleep 3
+if systemctl is-active --quiet gaali-api && curl -fsS --max-time 5 http://127.0.0.1:8080/healthz >/dev/null; then
+  echo "installed build $want"
+else
+  echo "build $want is unhealthy, rolling back" >&2
+  echo "$want" > "$bad"
+  install -m 755 -o root -g root "$installed.prev" "$installed"
+  systemctl restart gaali-api
+  exit 1
+fi

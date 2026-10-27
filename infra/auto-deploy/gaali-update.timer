@@ -1,0 +1,10 @@
+[Unit]
+Description=Check GitHub for a new Gaali Finder server build every minute
+
+[Timer]
+OnBootSec=2min
+OnCalendar=minutely
+RandomizedDelaySec=10
+
+[Install]
+WantedBy=timers.target

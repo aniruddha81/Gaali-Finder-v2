@@ -1,0 +1,62 @@
+name: Deploy web
+
+# Pushing to `release` ships the server and web pages. The VM only accepts SSH from the owner's
+# IP, so this workflow does not connect to it: it builds the binaries and publishes them as the
+# `web-latest` release, and the VM's gaali-update timer pulls them within a minute (see
+# infra/auto-deploy/). No secrets are needed beyond the built-in GITHUB_TOKEN.
+on:
+  push:
+    branches: [release]
+
+concurrency:
+  group: deploy-web
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # `release` may only ever hold commits that are already on main.
+      - name: Check the commit is on main
+        run: |
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::$GITHUB_SHA is not on main. Merge it into main first, then push main to release."
+            exit 1
+          fi
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: server/go.mod
+          cache-dependency-path: server/go.sum
+
+      - name: Vet and test
+        working-directory: server
+        run: |
+          go vet ./...
+          go test ./...
+
+      - name: Build
+        working-directory: server
+        run: |
+          mkdir -p ../dist
+          for arch in amd64 arm64; do
+            CGO_ENABLED=0 GOOS=linux GOARCH=$arch go build -trimpath -ldflags="-s -w" -o ../dist/gaali-server-linux-$arch .
+            (cd ../dist && sha256sum gaali-server-linux-$arch > gaali-server-linux-$arch.sha256)
+          done
+
+      - name: Publish web-latest
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete web-latest --cleanup-tag --yes || true
+          gh release create web-latest dist/* --prerelease --target "$GITHUB_SHA" \
+            --title "Web build ${GITHUB_SHA::7}" \
+            --notes "Built from $GITHUB_SHA. The VM installs it within a minute."

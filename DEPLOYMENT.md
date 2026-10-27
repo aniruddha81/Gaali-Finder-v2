@@ -238,6 +238,36 @@ rclone copy   oos:gaali-backups/audio /var/lib/gaali/audio
 
 The restore was tested: a copy came back with every row and a clean integrity check.
 
+## Auto-deploy (GitHub Actions)
+
+Pushing to the `release` branch deploys the server and web pages. The workflow
+(`.github/workflows/deploy-web.yml`) refuses any commit that is not already on `main`, runs vet and
+tests, builds the Linux binaries and publishes them as the `web-latest` release. The VM never accepts
+SSH from GitHub, so it pulls instead: `gaali-update.timer` checks every minute, verifies the
+checksum, installs, restarts, and rolls back (remembering the bad build) if `/healthz` fails.
+Expect a deploy about 2-3 minutes after the push. No secrets are involved.
+
+```sh
+git push origin main:release     # ship what is on main
+sudo journalctl -u gaali-update -n 20   # on the VM: what the updater did
+```
+
+Set up once per VM with `infra/enable-auto-deploy.sh ubuntu@<ip>`. Manual `infra/deploy.sh` still
+works. Also protect `release` in GitHub (Settings, Branches) so only you can push to it: whoever can
+push there can ship code to the server.
+
+## Admin console
+
+`https://api.aniruddha81.tech/admin` is a live dashboard for the server and database: request rate,
+errors and latency, DB ping, CPU/memory/disk, Go runtime, per-table rows and sizes, WAL size,
+connection pool, users and clips, recent requests and the server log. It refreshes every 2-15 s and
+keeps the last hour in memory (a restart empties it).
+
+Access: set `ADMIN_EMAILS=you@example.com` (comma-separated) in `/etc/gaali/api.env` and restart. Sign
+in on the page with that account's e-mail and password; the e-mail must be verified. A Google-only
+account has no password, so use "Forgot password" in the app once to set one. With the variable
+empty nobody can use the console, and the page itself shows nothing without a valid admin token.
+
 ## Email
 
 The API sends two mails, verification and password reset, in the background with one retry, capped
