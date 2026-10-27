@@ -3,14 +3,16 @@ package com.aniruddha81.gaalifinderv2.domain.model
 /**
  * The signed-in user, as the app thinks about them.
  *
- * Deliberately free of Appwrite types so the UI and ViewModels can be tested without a client.
+ * Deliberately free of network types so the UI and ViewModels can be tested without a client.
  */
 data class AuthUser(
     val id: String,
     val name: String,
     val email: String,
+    /** False until the user follows the link in the verification email; uploads need it. */
+    val emailVerified: Boolean = true,
 ) {
-    /** Appwrite lets the name be blank for some providers; the email is the sensible fallback. */
+    /** The name can be blank; the email is the sensible fallback. */
     val displayName: String
         get() = name.ifBlank { email.substringBefore('@') }.ifBlank { "Someone" }
 }
@@ -31,10 +33,9 @@ sealed interface AuthState {
 }
 
 /**
- * The app-side plan record for a user, kept in the `user_profiles` collection because Appwrite
- * Auth users cannot carry custom fields the server can trust.
+ * The plan a user is on, as the server reports it from `GET /v1/me`.
  *
- * Never written by the client — see the permissions checklist in the setup guide.
+ * Never written by the client: the server alone decides who is premium.
  */
 data class UserProfile(
     val userId: String,
@@ -46,7 +47,7 @@ data class UserProfile(
         get() = if (isPremium) premiumStorageLimitBytes else StorageQuota.FREE_TOTAL_BYTES
 
     companion object {
-        /** What a signed-in user gets before any `user_profiles` document exists for them. */
+        /** What a signed-in user gets until the server says otherwise. */
         fun free(userId: String) = UserProfile(userId = userId, isPremium = false)
     }
 }
@@ -59,6 +60,6 @@ object StorageQuota {
     /** Total cap across all of a free user's uploads. */
     const val FREE_TOTAL_BYTES: Long = 10_485_760L // 10 MB
 
-    /** Placeholder premium cap, overridable per-user from the Console. */
+    /** Default premium cap; the server can set a different limit per user. */
     const val DEFAULT_PREMIUM_TOTAL_BYTES: Long = 104_857_600L // 100 MB
 }

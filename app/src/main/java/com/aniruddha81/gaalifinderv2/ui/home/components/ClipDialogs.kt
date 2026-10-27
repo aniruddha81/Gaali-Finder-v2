@@ -190,6 +190,7 @@ fun UpgradePlaceholderDialog(onDismiss: () -> Unit) {
 fun AccountSheet(
     user: AuthUser,
     usage: StorageUsage?,
+    onResendVerification: () -> Unit,
     onSignOut: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -215,6 +216,19 @@ fun AccountSheet(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+
+            if (!user.emailVerified) {
+                Spacer(Modifier.height(16.dp))
+
+                Text(
+                    text = stringResource(R.string.verify_banner, user.email),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                TextButton(onClick = onResendVerification) {
+                    Text(stringResource(R.string.action_resend_verification))
+                }
+            }
 
             if (usage != null) {
                 Spacer(Modifier.height(20.dp))

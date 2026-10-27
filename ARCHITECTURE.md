@@ -1,12 +1,12 @@
 # Gaali Finder — architecture
 
-A soundboard: clips sync down from a shared Appwrite bucket, the user can also import their own,
-and everything plays from the device's private storage.
+A soundboard: clips sync down from the shared Gaali API (`server/`, Go + SQLite), signed-in users
+can upload their own, and everything plays from the device's private storage.
 
 ## Layers
 
 Dependencies point inwards. `ui` knows `domain`; `data` implements `domain`; `domain` knows
-nothing about Room, Appwrite or Compose.
+nothing about Room, HTTP or Compose.
 
 ```
 ui/          Compose screens + ViewModels. Renders state, emits actions.
@@ -20,7 +20,7 @@ domain/      The app's vocabulary. Pure Kotlin, no Android imports.
 
 data/        Implements the domain contracts.
   local/       Room entity, DAO, database, migrations
-  remote/      Appwrite data source
+  remote/      ApiClient (OkHttp, token refresh), API data sources, encrypted token store
   storage/     File writes into app-private storage, duration probing
   mapper/      Entity <-> domain translation
   repository/  AudioClipRepositoryImpl — orchestrates the three sources above
@@ -62,16 +62,16 @@ standing up Room, the filesystem or the network.
 
 ## Configuration
 
-Appwrite credentials come from `local.properties` (git-ignored) or the environment, and are
-exposed as `BuildConfig` fields:
+The API address and Google client id come from `local.properties` (git-ignored) or the
+environment, and are exposed as `BuildConfig` fields:
 
 ```properties
-APPWRITE_ENDPOINT=https://fra.cloud.appwrite.io/v1
-APPWRITE_PROJECT_ID=your_project_id
-APPWRITE_BUCKET_ID=your_bucket_id
+API_BASE_URL=https://api.example.com
+GOOGLE_WEB_CLIENT_ID=your_google_oauth_web_client_id
 ```
 
-Leaving them unset is supported: the app runs fully offline and skips the catalogue sync instead
+Debug builds may use plain HTTP to `10.0.2.2` (the emulator's host) for a local API; release
+builds are HTTPS only. Leaving them unset is supported: the app runs fully offline and skips the catalogue sync instead
 of failing.
 
 Firebase needs `app/google-services.json`, which is also git-ignored.
@@ -86,7 +86,7 @@ Version 3. Migrations are manual and additive; schemas are exported to `app/sche
 | 2 → 3 | `durationMs`, `sizeBytes`, `addedAt`, plus indices on `fileName` and `source` |
 
 The `source` column is stringly-typed for backwards compatibility: `"local"` means the user
-imported it, anything else is the Appwrite file id. `data/mapper` is the only code that knows
+imported it, anything else is the server's file key. `data/mapper` is the only code that knows
 this; everything above it sees a typed `ClipOrigin`.
 
 New clips are written to `filesDir/clips/`. Clips saved by earlier versions sit directly in
@@ -94,8 +94,11 @@ New clips are written to `filesDir/clips/`. Clips saved by earlier versions sit 
 
 ## Tests
 
-`./gradlew :app:testDebugUnitTest` — 50 JVM tests covering file-name handling, the
-search/filter/sort pipeline, playback-state maths, entity mapping, and the ViewModel's
-error paths against fakes.
+`./gradlew :app:testDebugUnitTest` — JVM tests covering file-name handling, the
+search/filter/sort pipeline, playback-state maths, entity mapping, the ViewModel's
+error paths against fakes, and the API client (token refresh, error mapping, pagination)
+against a MockWebServer.
+
+`cd server && go test ./...` — the API's integration tests (auth, quota, reactions, import).
 
 `./gradlew :app:connectedDebugAndroidTest` — Room migration tests (needs a device or emulator).

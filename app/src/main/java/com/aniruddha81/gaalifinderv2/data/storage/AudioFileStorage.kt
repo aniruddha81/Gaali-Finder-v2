@@ -16,7 +16,7 @@ import javax.inject.Singleton
 /**
  * A local cache of clips that have been played.
  *
- * This is no longer a library the user owns — Appwrite is the only source of clips. The cache
+ * This is no longer a library the user owns — the server is the only source of clips. The cache
  * exists because [android.media.MediaPlayer] needs a path or URI to read from, and because
  * re-downloading the same clip on every tap would be both slow and wasteful. Anything in here
  * can be deleted at any time and will simply be fetched again.

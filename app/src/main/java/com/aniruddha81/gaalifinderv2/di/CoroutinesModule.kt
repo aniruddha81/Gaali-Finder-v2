@@ -32,7 +32,7 @@ object CoroutinesModule {
 
     /**
      * A [SupervisorJob] so one failed background task cannot cancel the others, which is exactly
-     * what the old bare `CoroutineScope(Dispatchers.IO)` in the Appwrite repository could not do.
+     * what the old bare `CoroutineScope(Dispatchers.IO)` in the old repository could not do.
      */
     @Provides
     @Singleton

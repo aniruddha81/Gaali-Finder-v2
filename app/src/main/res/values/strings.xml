@@ -121,7 +121,26 @@
     <string name="sync_up_to_date">You\'re up to date</string>
 
     <!-- Auth -->
-    <string name="action_sign_in">Sign in with Google</string>
+    <string name="action_sign_in">Sign in</string>
+    <string name="sign_in_title">Sign in to Gaali Finder</string>
+    <string name="sign_up_title">Create your account</string>
+    <string name="forgot_title">Reset your password</string>
+    <string name="forgot_body">We\'ll email you a link to choose a new password.</string>
+    <string name="sign_in_with_google">Continue with Google</string>
+    <string name="or_divider">or</string>
+    <string name="field_name">Your name</string>
+    <string name="field_email">Email</string>
+    <string name="field_password">Password</string>
+    <string name="password_hint">At least %1$d characters</string>
+    <string name="action_create_account">Create account</string>
+    <string name="action_forgot_password">Forgot password?</string>
+    <string name="action_send_reset">Send reset link</string>
+    <string name="mode_new_here">New here? Create an account</string>
+    <string name="mode_have_account">Already have an account? Sign in</string>
+    <string name="verify_banner">Verify your email to upload. We sent a link to %1$s.</string>
+    <string name="action_resend_verification">Resend email</string>
+    <string name="verification_sent">Verification email sent</string>
+    <string name="reset_requested">If that email has an account, a reset link is on its way.</string>
     <string name="action_sign_out">Sign out</string>
     <string name="cd_account">Account</string>
     <string name="signed_in_as">Signed in as %1$s</string>
@@ -166,5 +185,11 @@
     <string name="error_files_too_large_named">Couldn\'t upload %1$s — each file must be %2$d KB or smaller.</string>
     <string name="error_quota_exceeded">You\'ve reached your %1$s storage limit.</string>
     <string name="error_upload_rejected">The server rejected that upload</string>
+    <string name="error_email_not_verified">Verify your email first — check your inbox for the link.</string>
+    <string name="error_invalid_credentials">Wrong email or password.</string>
+    <string name="error_email_taken">That email already has an account. Try signing in.</string>
+    <string name="error_weak_password">Use a password of 10 to 128 characters.</string>
+    <string name="error_invalid_email">Enter a valid email address.</string>
+    <string name="error_rate_limited">Too many attempts. Try again in a bit.</string>
     <string name="error_unexpected">Something went wrong</string>
 </resources>

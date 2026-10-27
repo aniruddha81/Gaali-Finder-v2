@@ -3,18 +3,18 @@ package com.aniruddha81.gaalifinderv2.domain.model
 /**
  * A playable sound clip, as the rest of the app thinks about it.
  *
- * This is deliberately free of Room and Appwrite types: the storage schema can change without
+ * This is deliberately free of Room and network types: the storage schema can change without
  * the UI noticing, and the UI can be tested without a database.
  *
- * Every clip now originates from the shared Appwrite catalogue — [id] is the `audio_metadata`
- * document id, and [fileId] the Storage file behind it. [cachedPath] is only ever a local copy
+ * Every clip originates from the shared catalogue — [id] is the server's clip id, and [fileId]
+ * the storage key of the audio file behind it. [cachedPath] is only ever a local copy
  * kept so playback works offline and does not re-download on every tap; it is a cache, never a
  * source of truth, and is null until the clip has been played once.
  */
 data class AudioClip(
-    /** The `audio_metadata` document id. Stable across devices, unlike the old row id. */
+    /** The server's clip id. Stable across devices, unlike the old row id. */
     val id: String,
-    /** Appwrite Storage file id, used to stream or download the audio. */
+    /** Storage key of the audio file; it is served at `/files/<fileId>`. */
     val fileId: String,
     /** File name including extension — e.g. `hello.mp3`. */
     val fileName: String,

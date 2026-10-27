@@ -8,9 +8,9 @@ plugins {
     id("com.google.gms.google-services")
 }
 
-// Appwrite credentials are read from local.properties (git-ignored) or the environment,
-// so they never end up in version control. Missing values degrade gracefully at runtime:
-// the app still works fully offline, it just skips the remote catalogue sync.
+// The API address and Google client id are read from local.properties (git-ignored) or the
+// environment, so they never end up in version control. Missing values degrade gracefully at
+// runtime: the app still works fully offline, it just skips the remote catalogue sync.
 val localProperties = Properties().apply {
     val file = rootProject.file("local.properties")
     if (file.exists()) file.inputStream().use(::load)
@@ -33,34 +33,11 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         ksp.arg("room.schemaLocation", "$projectDir/schemas")
 
-        buildConfigField(
-            "String",
-            "APPWRITE_ENDPOINT",
-            "\"${buildSecret("APPWRITE_ENDPOINT", "https://fra.cloud.appwrite.io/v1")}\""
-        )
-        buildConfigField("String", "APPWRITE_PROJECT_ID", "\"${buildSecret("APPWRITE_PROJECT_ID")}\"")
-        buildConfigField("String", "APPWRITE_BUCKET_ID", "\"${buildSecret("APPWRITE_BUCKET_ID")}\"")
-        buildConfigField("String", "APPWRITE_DATABASE_ID", "\"${buildSecret("APPWRITE_DATABASE_ID")}\"")
-        buildConfigField(
-            "String",
-            "APPWRITE_AUDIO_METADATA_COLLECTION_ID",
-            "\"${buildSecret("APPWRITE_AUDIO_METADATA_COLLECTION_ID", "audio_metadata")}\""
-        )
-        buildConfigField(
-            "String",
-            "APPWRITE_AUDIO_REACTIONS_COLLECTION_ID",
-            "\"${buildSecret("APPWRITE_AUDIO_REACTIONS_COLLECTION_ID", "audio_reactions")}\""
-        )
-        buildConfigField(
-            "String",
-            "APPWRITE_USER_PROFILES_COLLECTION_ID",
-            "\"${buildSecret("APPWRITE_USER_PROFILES_COLLECTION_ID", "user_profiles")}\""
-        )
-
-        // The Appwrite SDK hands the OAuth result back on this scheme; the manifest placeholder
-        // wires it into the CallbackActivity intent-filter so the two can never drift apart.
-        manifestPlaceholders["appwriteCallbackScheme"] =
-            "appwrite-callback-${buildSecret("APPWRITE_PROJECT_ID")}"
+        // Base URL of the Gaali API, e.g. https://api.example.com (no trailing slash needed).
+        buildConfigField("String", "API_BASE_URL", "\"${buildSecret("API_BASE_URL")}\"")
+        // OAuth *Web* client id from the gaali-finder Google Cloud project; Credential Manager
+        // asks Google for an ID token addressed to it, and the API checks that audience.
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${buildSecret("GOOGLE_WEB_CLIENT_ID")}\"")
     }
 
     buildTypes {
@@ -105,6 +82,8 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.org.json)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     // ui-test-junit4 is versioned by the BOM, so the androidTest classpath needs it too.
@@ -118,7 +97,10 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.lifecycle.livedata.ktx)
-    implementation(libs.sdk.for1.android)
+    implementation(libs.okhttp)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.credentials.play.services.auth)
+    implementation(libs.googleid)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.paging.runtime.ktx)
 

@@ -1,0 +1,156 @@
+#cloud-config
+# First-boot setup for the Gaali Finder VM (Ubuntu 24.04). infra/provision.sh fills in the
+# __PLACEHOLDERS__ and passes this as user-data. Secrets are NOT baked in: the JWT secret is
+# generated on the VM, and the Brevo key / Google client id are added by hand afterwards in
+# /etc/gaali/api.env (cloud-init user-data is readable from the instance metadata service).
+package_update: true
+# No package_upgrade: it is slow and memory-hungry on the 1 GB micro shape; unattended-upgrades
+# keeps the VM patched after first boot.
+
+write_files:
+  - path: /opt/gaali/Caddyfile
+    content: |
+      __DOMAIN__ {
+          encode zstd gzip
+          request_body {
+              max_size 512KB
+          }
+          reverse_proxy 127.0.0.1:8080
+      }
+
+  - path: /etc/systemd/system/gaali-api.service
+    content: |
+      [Unit]
+      Description=Gaali Finder API
+      After=network-online.target
+      Wants=network-online.target
+
+      [Service]
+      User=gaali
+      Group=gaali
+      EnvironmentFile=/etc/gaali/api.env
+      ExecStart=/opt/gaali/server
+      Restart=always
+      RestartSec=2
+      NoNewPrivileges=true
+      ProtectSystem=strict
+      ProtectHome=true
+      PrivateTmp=true
+      ReadWritePaths=/var/lib/gaali
+
+      [Install]
+      WantedBy=multi-user.target
+
+  - path: /etc/systemd/system/gaali-backup.service
+    content: |
+      [Unit]
+      Description=Back up the Gaali Finder database and audio to Object Storage
+
+      [Service]
+      Type=oneshot
+      User=gaali
+      Group=gaali
+      EnvironmentFile=/etc/gaali/backup.env
+      ExecStart=/usr/local/bin/gaali-backup
+
+  - path: /etc/systemd/system/gaali-backup.timer
+    content: |
+      [Unit]
+      Description=Nightly Gaali Finder backup
+
+      [Timer]
+      OnCalendar=*-*-* 03:30:00 UTC
+      RandomizedDelaySec=600
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+
+  - path: /usr/local/bin/gaali-backup
+    permissions: '0755'
+    content: |
+      #!/bin/sh
+      # Nightly: consistent copy of the SQLite file + new audio files -> Object Storage bucket.
+      # Keeps 14 days of database copies. Audio files are immutable and never rewritten.
+      #
+      # Restore (on a fresh VM, service stopped):
+      #   rclone copyto oos:gaali-backups/db/gaali-YYYY-MM-DD.db /var/lib/gaali/gaali.db
+      #   rclone copy   oos:gaali-backups/audio /var/lib/gaali/audio
+      set -eu
+      work=$(mktemp -d)
+      trap 'rm -rf "$work"' EXIT
+      sqlite3 /var/lib/gaali/gaali.db ".backup '$work/gaali.db'"
+      rclone copyto "$work/gaali.db" "oos:gaali-backups/db/gaali-$(date -u +%F).db"
+      rclone copy /var/lib/gaali/audio oos:gaali-backups/audio
+      rclone delete oos:gaali-backups/db --min-age 14d
+
+runcmd:
+  # 2 GB swap for the 1 GB micro shape. Must run here, after cloud-init has grown the root
+  # filesystem to the full boot volume - earlier, the tiny image filesystem fills up and the VM breaks.
+  - [ sh, -c, "[ -f /swapfile ] || { fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile; }; swapon /swapfile || true" ]
+  # Packages, with retries: the one-shot `packages:` module failed once on first boot with a
+  # transient apt error, which silently skipped the firewall and backup tooling.
+  - |
+    for i in 1 2 3 4 5 6; do
+      apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y         curl gpg openssl sqlite3 unzip ufw fail2ban unattended-upgrades netfilter-persistent && break
+      echo "apt failed (attempt $i), retrying"; sleep 20
+    done
+
+  # rclone from rclone.org (Ubuntu's packaged build lacks the Oracle Object Storage backend). The
+  # version and checksums are pinned, so a tampered download fails instead of being installed.
+  - |
+    V=v1.75.2
+    case $(uname -m) in
+      aarch64) a=arm64; sum=7e1e8d69654941b7b7df84ee74c5f7fb09cce7d5496947fb7bf16b55ff427d10 ;;
+      *)       a=amd64; sum=349ac8fba6ff65d6247043f1750cdcb518ec5d500ef91463a10d37c0ccdf3702 ;;
+    esac
+    cd /tmp && curl -fsSLO https://downloads.rclone.org/$V/rclone-$V-linux-$a.zip       && echo "$sum  rclone-$V-linux-$a.zip" | sha256sum -c -       && unzip -qo rclone-$V-linux-$a.zip && install -m 0755 rclone-$V-linux-$a/rclone /usr/local/bin/rclone       && rm -rf rclone-$V-linux-$a*
+
+  # Caddy from its official apt repository.
+  - curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/gpg.key | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  - curl -fsSL https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt -o /etc/apt/sources.list.d/caddy-stable.list
+  - apt-get update && apt-get install -y caddy
+  - cp /opt/gaali/Caddyfile /etc/caddy/Caddyfile && systemctl restart caddy
+
+  # Service account and directories.
+  - useradd --system --home-dir /var/lib/gaali --shell /usr/sbin/nologin gaali || true
+  - mkdir -p /var/lib/gaali/audio /etc/gaali && chown -R gaali:gaali /var/lib/gaali && chmod 750 /var/lib/gaali
+  - |
+    if [ ! -f /etc/gaali/api.env ]; then
+      umask 077
+      cat > /etc/gaali/api.env <<ENV
+    ADDR=127.0.0.1:8080
+    DATA_DIR=/var/lib/gaali
+    PUBLIC_URL=https://__DOMAIN__
+    JWT_SECRET=$(openssl rand -base64 48 | tr -d '\n')
+    GOOGLE_WEB_CLIENT_ID=
+    RESEND_API_KEY=
+    BREVO_API_KEY=
+    MAIL_REPLY_TO=
+    MAIL_FROM=no-reply@__DOMAIN__
+    MAIL_FROM_NAME=Gaali Finder
+    ENV
+    fi
+  - |
+    cat > /etc/gaali/backup.env <<ENV
+    RCLONE_CONFIG_OOS_TYPE=oracleobjectstorage
+    RCLONE_CONFIG_OOS_PROVIDER=instance_principal_auth
+    RCLONE_CONFIG_OOS_NAMESPACE=__NAMESPACE__
+    RCLONE_CONFIG_OOS_COMPARTMENT=__COMPARTMENT_OCID__
+    RCLONE_CONFIG_OOS_REGION=__REGION__
+    ENV
+  - chown root:gaali /etc/gaali/api.env /etc/gaali/backup.env && chmod 640 /etc/gaali/api.env /etc/gaali/backup.env
+
+  # Firewall. Oracle's Ubuntu image ships an iptables REJECT rule that would block 80/443 even
+  # though the VCN allows them; clear it and let ufw own the host firewall.
+  - iptables -F INPUT && netfilter-persistent save
+  - ufw default deny incoming && ufw default allow outgoing
+  - ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp
+  - ufw --force enable
+  - systemctl enable --now fail2ban unattended-upgrades
+
+  # The API is enabled but not started: there is no binary until infra/deploy.sh uploads one.
+  - grep -q swapfile /etc/fstab || echo "/swapfile none swap sw 0 0" >> /etc/fstab
+  - systemctl daemon-reload
+  - systemctl enable gaali-api
+  - systemctl enable --now gaali-backup.timer

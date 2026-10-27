@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.aniruddha81.gaalifinderv2.core.error.AppError
 import com.aniruddha81.gaalifinderv2.core.result.DataResult
 import com.aniruddha81.gaalifinderv2.domain.model.AuthState
+import com.aniruddha81.gaalifinderv2.domain.model.AuthUser
 import com.aniruddha81.gaalifinderv2.domain.repository.AudioClipRepository
 import com.aniruddha81.gaalifinderv2.domain.repository.AuthRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -49,20 +50,58 @@ class AuthViewModel @Inject constructor(
      * [onSignedIn] runs only on success, which is what lets a caller say "and then open the
      * upload picker" without having to watch the state flow itself.
      */
-    fun signIn(activity: ComponentActivity, onSignedIn: () -> Unit = {}) {
-        // Guarded so a double tap on the FAB cannot launch two browser tabs.
-        if (_isSigningIn.value) return
-        _isSigningIn.value = true
+    fun signInWithGoogle(activity: ComponentActivity, onSignedIn: () -> Unit = {}) =
+        startSession(onSignedIn) { authRepository.signInWithGoogle(activity) }
 
-        viewModelScope.launch {
-            when (val result = authRepository.signInWithGoogle(activity)) {
+    fun signInWithEmail(email: String, password: String, onSignedIn: () -> Unit = {}) =
+        startSession(onSignedIn) { authRepository.signInWithEmail(email, password) }
+
+    fun register(email: String, password: String, name: String, onSignedIn: () -> Unit = {}) =
+        startSession(onSignedIn) { authRepository.register(email, password, name) }
+
+    fun requestPasswordReset(email: String, onDone: () -> Unit = {}) {
+        runGuarded {
+            when (val result = authRepository.requestPasswordReset(email)) {
+                is DataResult.Failure -> _events.tryEmit(AuthEvent.Failed(result.error))
+                is DataResult.Success -> {
+                    _events.tryEmit(AuthEvent.ResetRequested)
+                    onDone()
+                }
+            }
+        }
+    }
+
+    fun resendVerification() {
+        runGuarded {
+            when (val result = authRepository.resendVerification()) {
+                is DataResult.Failure -> _events.tryEmit(AuthEvent.Failed(result.error))
+                is DataResult.Success -> _events.tryEmit(AuthEvent.VerificationSent)
+            }
+        }
+    }
+
+    private fun startSession(onSignedIn: () -> Unit, signIn: suspend () -> DataResult<AuthUser>) {
+        runGuarded {
+            when (val result = signIn()) {
                 is DataResult.Failure -> _events.tryEmit(AuthEvent.Failed(result.error))
                 is DataResult.Success -> {
                     _events.tryEmit(AuthEvent.SignedIn(result.data.displayName))
                     onSignedIn()
                 }
             }
-            _isSigningIn.value = false
+        }
+    }
+
+    /** Guarded so a double tap cannot start two requests (or two Google sheets). */
+    private fun runGuarded(block: suspend () -> Unit) {
+        if (_isSigningIn.value) return
+        _isSigningIn.value = true
+        viewModelScope.launch {
+            try {
+                block()
+            } finally {
+                _isSigningIn.value = false
+            }
         }
     }
 
@@ -90,5 +129,7 @@ class AuthViewModel @Inject constructor(
 sealed interface AuthEvent {
     data class SignedIn(val displayName: String) : AuthEvent
     data object SignedOut : AuthEvent
+    data object VerificationSent : AuthEvent
+    data object ResetRequested : AuthEvent
     data class Failed(val error: AppError) : AuthEvent
 }

@@ -20,14 +20,14 @@ git clone https://github.com/aniruddha81/Gaali-Finder-v2-.git
 cd GaaliFinderV2
 ```
 
-### 2️⃣ Configure Appwrite Credentials
-Set your Appwrite Project ID and Bucket ID in `app/src/main/java/com/aniruddha81/gaalifinderv2/Constants.kt`:
-```kotlin
-object Constants {
-    const val APPWRITE_PROJECT_ID = "your_project_id"
-    const val APPWRITE_BUCKET_ID = "your_bucket_id"
-}
+### 2️⃣ Point the app at the API
+Add these to `local.properties` (git-ignored):
+```properties
+API_BASE_URL=https://api.example.com
+GOOGLE_WEB_CLIENT_ID=your_google_oauth_web_client_id
 ```
+The API itself lives in [`server/`](server/) (Go + SQLite) and is deployed with [`infra/`](infra/).
+See [`DEPLOYMENT.md`](DEPLOYMENT.md) for how it is hosted.
 ### 3️⃣ Add `google-services.json` File
 Download the `google-services.json` file from your Firebase project and place it in the `app` directory of this project.
 
@@ -35,6 +35,6 @@ Download the `google-services.json` file from your Firebase project and place it
 Open the project in Android Studio, connect your device/emulator, and run the app. The apk file is in the release option.
 
 ## 📌 How It Works
-- **Admin-Only Uploads** – Only the admin can upload new clips to the remote server.
-- **Local Audio Storage** – Users can add custom clips, but they remain on their device.
-- **Auto-Sync** – When the admin uploads new clips, they automatically sync to users' apps.
+- **Shared Library** – Signed-in users (Google, or email and password with a verified address) upload clips to the shared library. Each file may be up to 200 KB; free accounts get 10 MB in total.
+- **Local Cache** – Clips are downloaded on first play and kept on the device so they work offline.
+- **Auto-Sync** – New clips from anyone appear in everyone's app on the next sync.

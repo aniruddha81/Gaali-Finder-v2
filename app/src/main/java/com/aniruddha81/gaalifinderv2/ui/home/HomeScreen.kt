@@ -7,6 +7,8 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.OpenableColumns
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -55,7 +57,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.aniruddha81.gaalifinderv2.R
 import com.aniruddha81.gaalifinderv2.auth.AuthEvent
+import com.aniruddha81.gaalifinderv2.auth.AuthActions
 import com.aniruddha81.gaalifinderv2.auth.AuthViewModel
+import com.aniruddha81.gaalifinderv2.auth.SignInSheet
 import com.aniruddha81.gaalifinderv2.domain.model.ClipFilter
 import com.aniruddha81.gaalifinderv2.ui.common.resolve
 import com.aniruddha81.gaalifinderv2.ui.home.components.AccountSheet
@@ -87,13 +91,29 @@ fun HomeScreen(
     authViewModel: AuthViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val isAuthBusy by authViewModel.isSigningIn.collectAsStateWithLifecycle()
+    val authActions = remember(authViewModel) {
+        AuthActions(
+            signInWithGoogle = authViewModel::signInWithGoogle,
+            signInWithEmail = authViewModel::signInWithEmail,
+            register = authViewModel::register,
+            requestPasswordReset = authViewModel::requestPasswordReset,
+            resendVerification = authViewModel::resendVerification,
+            signOut = authViewModel::signOut,
+        )
+    }
+
+    // Following the verification link happens in a browser, so the app only learns about it by
+    // asking again when the user comes back.
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { authViewModel.refresh() }
+
     HomeScreen(
         uiState = uiState,
         effects = viewModel.effects,
         authEvents = authViewModel.events,
+        isAuthBusy = isAuthBusy,
         onAction = viewModel::onAction,
-        onSignIn = authViewModel::signIn,
-        onSignOut = authViewModel::signOut,
+        authActions = authActions,
     )
 }
 
@@ -109,9 +129,9 @@ private fun HomeScreen(
     uiState: HomeUiState,
     effects: Flow<HomeEffect>,
     authEvents: Flow<AuthEvent>,
+    isAuthBusy: Boolean,
     onAction: (HomeAction) -> Unit,
-    onSignIn: (ComponentActivity, () -> Unit) -> Unit,
-    onSignOut: () -> Unit,
+    authActions: AuthActions,
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -120,6 +140,9 @@ private fun HomeScreen(
 
     // Whether the expanding add-menu (upload / record) is open.
     var addMenuExpanded by remember { mutableStateOf(false) }
+
+    // Set while the sign-in sheet is up; remembers where the guest was headed.
+    var pendingSignIn by remember { mutableStateOf<HomeEffect.RequestSignIn?>(null) }
 
     val filePicker = rememberLauncherForActivityResult(
         ActivityResultContracts.OpenMultipleDocuments()
@@ -178,22 +201,7 @@ private fun HomeScreen(
 
                 HomeEffect.OpenFilePicker -> filePicker.launch(AUDIO_MIME_TYPES)
 
-                is HomeEffect.RequestSignIn -> {
-                    // OAuth needs the hosting activity, which only the composition can reach.
-                    val activity = context.findComponentActivity()
-                    if (activity == null) {
-                        onAction(HomeAction.ShareTargetMissing)
-                    } else {
-                        onSignIn(activity) {
-                            // Sending them straight where they were headed means the add menu
-                            // takes one tap for a guest too, not two.
-                            when {
-                                effect.thenOpenPicker -> filePicker.launch(AUDIO_MIME_TYPES)
-                                effect.thenOpenRecorder -> openRecorderWithPermission()
-                            }
-                        }
-                    }
-                }
+                is HomeEffect.RequestSignIn -> pendingSignIn = effect
             }
         }
     }
@@ -203,6 +211,8 @@ private fun HomeScreen(
             val text = when (event) {
                 is AuthEvent.SignedIn -> context.getString(R.string.signed_in_as, event.displayName)
                 AuthEvent.SignedOut -> context.getString(R.string.signed_out)
+                AuthEvent.VerificationSent -> context.getString(R.string.verification_sent)
+                AuthEvent.ResetRequested -> context.getString(R.string.reset_requested)
                 is AuthEvent.Failed -> UiMessage.FromError(event.error).resolve(context)
             }
             snackbarHostState.currentSnackbarData?.dismiss()
@@ -358,13 +368,32 @@ private fun HomeScreen(
             AccountSheet(
                 user = user,
                 usage = uiState.storageUsage,
+                onResendVerification = authActions.resendVerification,
                 onSignOut = {
                     onAction(HomeAction.SignOutRequested)
-                    onSignOut()
+                    authActions.signOut()
                 },
                 onDismiss = { onAction(HomeAction.AccountSheetDismissed) },
             )
         }
+    }
+
+    pendingSignIn?.let { destination ->
+        SignInSheet(
+            activity = context.findComponentActivity(),
+            isBusy = isAuthBusy,
+            actions = authActions,
+            onSignedIn = {
+                pendingSignIn = null
+                // Sending them straight where they were headed means the add menu takes one
+                // tap for a guest too, not two.
+                when {
+                    destination.thenOpenPicker -> filePicker.launch(AUDIO_MIME_TYPES)
+                    destination.thenOpenRecorder -> openRecorderWithPermission()
+                }
+            },
+            onDismiss = { pendingSignIn = null },
+        )
     }
 
     if (uiState.isRecorderOpen) {

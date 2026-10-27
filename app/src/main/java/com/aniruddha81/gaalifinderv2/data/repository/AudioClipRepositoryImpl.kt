@@ -118,7 +118,7 @@ class AudioClipRepositoryImpl @Inject constructor(
                     )
                 }
 
-                // 3. Upload. The server re-validates both limits and can still reject this.
+                // 3. Upload. The server enforces both limits itself and can still reject this.
                 val uploaded = when (
                     val result = remote.upload(
                         UploadRequest(
@@ -203,9 +203,8 @@ class AudioClipRepositoryImpl @Inject constructor(
     /**
      * Returns a local path the player can open, downloading the audio on first play.
      *
-     * Streaming straight from the Appwrite URL was the alternative, but the bucket is not
-     * public-by-URL — reads go through the session — so the bytes have to come down through the
-     * SDK either way. Caching them means the second play is instant and works offline.
+     * Files are public, so streaming straight from the URL was an option, but downloading once
+     * means the second play is instant and works offline.
      */
     override suspend fun ensurePlayable(clip: AudioClip): DataResult<String> =
         withContext(ioDispatcher) {
@@ -237,9 +236,9 @@ class AudioClipRepositoryImpl @Inject constructor(
     /**
      * Applies a reaction and re-reads the authoritative counts.
      *
-     * The local row is updated optimistically so the tap feels instant, then reconciled against
-     * whatever the count-sync Function computed — the client never does its own arithmetic on
-     * `likeCount`, which is what makes concurrent reactions safe.
+     * The local row is updated optimistically so the tap feels instant, then settled on the
+     * counts the server returns — the client never trusts its own arithmetic on `likeCount`,
+     * which is what makes concurrent reactions safe.
      */
     override suspend fun react(
         clip: AudioClip,
@@ -257,7 +256,8 @@ class AudioClipRepositoryImpl @Inject constructor(
                 dislikeCount = optimistic.dislikeCount,
             )
 
-            when (val result = remote.setReaction(clip.id, userId, target)) {
+            // The server owns the counts; the row settles on what it reports back.
+            val settled = when (val result = remote.setReaction(clip.id, userId, target)) {
                 is DataResult.Failure -> {
                     // Put the row back the way it was rather than leaving a reaction the server
                     // never accepted.
@@ -270,23 +270,16 @@ class AudioClipRepositoryImpl @Inject constructor(
                     throw AppErrorException(result.error)
                 }
 
-                is DataResult.Success -> Unit
+                is DataResult.Success -> result.data
             }
 
-            // The Function is what owns the counts; this settles the row on its result. If the
-            // read fails the optimistic values simply stand until the next sync.
-            val settled = remote.counts(clip.id).getOrNull()
-            if (settled != null) {
-                dao.setReaction(
-                    id = clip.id,
-                    reaction = target.wireValue,
-                    likeCount = settled.first,
-                    dislikeCount = settled.second,
-                )
-                optimistic.copy(likeCount = settled.first, dislikeCount = settled.second)
-            } else {
-                optimistic
-            }
+            dao.setReaction(
+                id = clip.id,
+                reaction = target.wireValue,
+                likeCount = settled.first,
+                dislikeCount = settled.second,
+            )
+            optimistic.copy(likeCount = settled.first, dislikeCount = settled.second)
         }
     }
 
@@ -303,8 +296,8 @@ class AudioClipRepositoryImpl @Inject constructor(
 /**
  * The counts this clip would have if [target] were applied.
  *
- * Purely for the optimistic update — the server-side Function remains the authority, and this
- * is overwritten as soon as it reports back.
+ * Purely for the optimistic update — the server remains the authority, and this is overwritten
+ * as soon as it reports back.
  */
 private fun AudioClip.withOptimisticReaction(target: ReactionType): AudioClip {
     val likeDelta = (if (target == ReactionType.Like) 1 else 0) -

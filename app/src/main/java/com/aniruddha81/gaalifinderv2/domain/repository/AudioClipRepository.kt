@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
  * The single way the app reads or changes the shared clip catalogue.
  *
  * Reads are exposed as a [Flow] over the local mirror, so the grid renders instantly and
- * offline while Appwrite stays authoritative. Writes return [DataResult] because each one can
+ * offline while the server stays authoritative. Writes return [DataResult] because each one can
  * fail in a way the user needs to hear about.
  */
 interface AudioClipRepository {
@@ -17,11 +17,11 @@ interface AudioClipRepository {
     /** The whole catalogue, re-emitting on every change. */
     fun observeClips(): Flow<List<AudioClip>>
 
-    /** Pulls the current catalogue — and, when signed in, this user's reactions — from Appwrite. */
+    /** Pulls the current catalogue — and, when signed in, this user's reactions — from the server. */
     suspend fun syncCatalogue(): DataResult<SyncOutcome>
 
     /**
-     * Checks the limits, then uploads to Appwrite Storage and registers the metadata.
+     * Checks the limits, then uploads the file.
      *
      * Both the per-file cap and the total-quota check happen here before a byte is sent, so an
      * over-quota upload costs nothing. The server re-validates independently.
@@ -31,7 +31,7 @@ interface AudioClipRepository {
     /** How much of their allowance this user has used, for the quota UI. */
     suspend fun storageUsage(userId: String): DataResult<StorageUsage>
 
-    /** Removes a clip from Appwrite and the local mirror. Only the uploader may do this. */
+    /** Removes a clip from the server and the local mirror. Only the uploader may do this. */
     suspend fun deleteClip(clip: AudioClip): DataResult<Unit>
 
     /**
@@ -40,7 +40,7 @@ interface AudioClipRepository {
      */
     suspend fun ensurePlayable(clip: AudioClip): DataResult<String>
 
-    /** Applies a like/dislike toggle for [userId], writing through to Appwrite. */
+    /** Applies a like/dislike toggle for [userId], writing through to the server. */
     suspend fun react(
         clip: AudioClip,
         userId: String,

@@ -8,8 +8,8 @@ import com.aniruddha81.gaalifinderv2.domain.model.ReactionType
 /**
  * Translates between the cached row, the wire model and the domain model.
  *
- * The cache is the only layer that speaks all three, which keeps Appwrite's `$id`/attribute
- * conventions out of the ViewModel and the UI entirely.
+ * The cache is the only layer that speaks all three, which keeps the wire format's field
+ * names out of the ViewModel and the UI entirely.
  */
 fun AudioFileEntity.toDomain(): AudioClip = AudioClip(
     id = documentId,

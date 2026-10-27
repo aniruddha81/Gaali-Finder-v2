@@ -5,14 +5,14 @@ package com.aniruddha81.gaalifinderv2.domain.model
  *
  * Modelled as a single value rather than two booleans, which is what makes "never liked and
  * disliked at once" a property of the type instead of an invariant somebody has to remember.
- * [None] is represented by the absence of an `audio_reactions` document, not a stored value.
+ * [None] is represented by the absence of a stored reaction, not a stored value.
  */
 enum class ReactionType {
     Like,
     Dislike,
     None;
 
-    /** The wire value stored in the `type` attribute; [None] never reaches the server. */
+    /** The wire value stored for a reaction; null for [None], which the API spells "none". */
     val wireValue: String?
         get() = when (this) {
             Like -> "like"

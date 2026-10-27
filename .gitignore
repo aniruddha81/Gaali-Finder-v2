@@ -16,14 +16,24 @@ local.properties
 
 # Sensitive / credentials
 app/google-services.json
-appwrite.config.json
 *.jks
 *.keystore
 keystore.properties
 secrets.properties
 .env
 .env.*
+!.env.example
+*.pem
+*.p12
+*.key
+credentials*.json
 
-# Appwrite function dependencies
-appwrite/functions/*/node_modules/
+# Local databases and CLI caches (account ids, tokens)
+*.db
+*.db-shm
+*.db-wal
+.cloudflare/
+.wrangler/
+.resend/
+
 node_modules/

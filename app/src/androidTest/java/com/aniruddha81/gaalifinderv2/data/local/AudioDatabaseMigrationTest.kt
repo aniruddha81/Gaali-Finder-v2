@@ -57,7 +57,7 @@ class AudioDatabaseMigrationTest {
     }
 
     /**
-     * v4 moved the app from a local library to a mirror of the shared Appwrite catalogue.
+     * v4 moved the app from a local library to a mirror of the shared server catalogue.
      *
      * The old rows are deliberately dropped: a locally-imported clip has no `audio_metadata`
      * document, no `fileId` and no uploader, so there is nothing to carry it across to. What

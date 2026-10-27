@@ -2,6 +2,7 @@ package com.aniruddha81.gaalifinderv2.data.repository
 
 import androidx.activity.ComponentActivity
 import com.aniruddha81.gaalifinderv2.core.dispatcher.ApplicationScope
+import com.aniruddha81.gaalifinderv2.core.error.AppError
 import com.aniruddha81.gaalifinderv2.core.result.DataResult
 import com.aniruddha81.gaalifinderv2.core.result.map
 import com.aniruddha81.gaalifinderv2.data.remote.AuthDataSource
@@ -48,20 +49,40 @@ class AuthRepositoryImpl @Inject constructor(
     }
 
     override suspend fun signInWithGoogle(activity: ComponentActivity): DataResult<AuthUser> =
-        mutex.withLock {
-            when (val result = remote.signInWithGoogle(activity)) {
-                is DataResult.Failure -> {
-                    // A failed sign-in leaves the user exactly where they were: a guest.
-                    _authState.value = AuthState.Guest
-                    result
-                }
+        startSession { remote.signInWithGoogle(activity) }
 
-                is DataResult.Success -> {
-                    _authState.value = AuthState.SignedIn(result.data, loadProfile(result.data.id))
-                    result
-                }
+    override suspend fun signInWithEmail(email: String, password: String): DataResult<AuthUser> =
+        startSession { remote.signInWithEmail(email, password) }
+
+    override suspend fun register(
+        email: String,
+        password: String,
+        displayName: String,
+    ): DataResult<AuthUser> = startSession { remote.register(email, password, displayName) }
+
+    override suspend fun requestPasswordReset(email: String): DataResult<Unit> =
+        remote.requestPasswordReset(email)
+
+    override suspend fun resendVerification(): DataResult<Unit> = remote.resendVerification()
+
+    /** Runs one sign-in path and moves the shared state to match the outcome. */
+    private suspend fun startSession(
+        signIn: suspend () -> DataResult<AuthUser>,
+    ): DataResult<AuthUser> = mutex.withLock {
+        when (val result = signIn()) {
+            is DataResult.Failure -> {
+                // A failed sign-in leaves the user exactly where they were. Only a guest becomes
+                // (or stays) a guest; someone already signed in keeps their session.
+                if (_authState.value !is AuthState.SignedIn) _authState.value = AuthState.Guest
+                result
+            }
+
+            is DataResult.Success -> {
+                _authState.value = AuthState.SignedIn(result.data, loadProfile(result.data.id))
+                result
             }
         }
+    }
 
     override suspend fun signOut(): DataResult<Unit> = mutex.withLock {
         remote.signOut().also { _authState.value = AuthState.Guest }
@@ -69,7 +90,13 @@ class AuthRepositoryImpl @Inject constructor(
 
     override suspend fun refresh(): AuthState = mutex.withLock {
         val state = when (val result = remote.currentUser()) {
-            is DataResult.Failure -> AuthState.Guest
+            is DataResult.Failure -> when {
+                result.error is AppError.NotSignedIn -> AuthState.Guest
+                // A dropped connection says nothing about the session, so a signed-in user stays
+                // signed in instead of flickering to guest every time the app resumes offline.
+                _authState.value is AuthState.SignedIn -> _authState.value
+                else -> AuthState.Guest
+            }
             is DataResult.Success -> AuthState.SignedIn(result.data, loadProfile(result.data.id))
         }
         _authState.value = state

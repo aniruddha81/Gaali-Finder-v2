@@ -4,10 +4,12 @@ import com.aniruddha81.gaalifinderv2.core.connectivity.AndroidConnectivityMonito
 import com.aniruddha81.gaalifinderv2.core.connectivity.ConnectivityMonitor
 import com.aniruddha81.gaalifinderv2.core.media.AudioPlayer
 import com.aniruddha81.gaalifinderv2.core.media.AudioPlayerController
-import com.aniruddha81.gaalifinderv2.data.remote.AppwriteAudioDataSource
-import com.aniruddha81.gaalifinderv2.data.remote.AppwriteAuthDataSource
+import com.aniruddha81.gaalifinderv2.data.remote.ApiAudioDataSource
+import com.aniruddha81.gaalifinderv2.data.remote.ApiAuthDataSource
 import com.aniruddha81.gaalifinderv2.data.remote.AuthDataSource
+import com.aniruddha81.gaalifinderv2.data.remote.KeystoreTokenStore
 import com.aniruddha81.gaalifinderv2.data.remote.RemoteAudioDataSource
+import com.aniruddha81.gaalifinderv2.data.remote.TokenStore
 import com.aniruddha81.gaalifinderv2.data.repository.AudioClipRepositoryImpl
 import com.aniruddha81.gaalifinderv2.data.repository.AuthRepositoryImpl
 import com.aniruddha81.gaalifinderv2.data.storage.AudioFileStorage
@@ -42,11 +44,15 @@ abstract class BindingsModule {
 
     @Binds
     @Singleton
-    abstract fun bindRemoteAudioDataSource(impl: AppwriteAudioDataSource): RemoteAudioDataSource
+    abstract fun bindRemoteAudioDataSource(impl: ApiAudioDataSource): RemoteAudioDataSource
 
     @Binds
     @Singleton
-    abstract fun bindAuthDataSource(impl: AppwriteAuthDataSource): AuthDataSource
+    abstract fun bindAuthDataSource(impl: ApiAuthDataSource): AuthDataSource
+
+    @Binds
+    @Singleton
+    abstract fun bindTokenStore(impl: KeystoreTokenStore): TokenStore
 
     @Binds
     @Singleton

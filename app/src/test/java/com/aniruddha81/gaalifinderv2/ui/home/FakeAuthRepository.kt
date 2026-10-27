@@ -9,13 +9,33 @@ import com.aniruddha81.gaalifinderv2.domain.repository.AuthRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
-/** A session that tests can move between guest and signed-in without touching Appwrite. */
+/** A session that tests can move between guest and signed-in without touching the network. */
 class FakeAuthRepository(initial: AuthState = AuthState.Guest) : AuthRepository {
 
     private val _authState = MutableStateFlow(initial)
     override val authState: StateFlow<AuthState> = _authState
 
     override suspend fun signInWithGoogle(activity: ComponentActivity): DataResult<AuthUser> {
+        val user = TEST_USER
+        _authState.value = AuthState.SignedIn(user, UserProfile.free(user.id))
+        return DataResult.Success(user)
+    }
+
+    override suspend fun signInWithEmail(email: String, password: String): DataResult<AuthUser> =
+        signInWithGoogleStub()
+
+    override suspend fun register(
+        email: String,
+        password: String,
+        displayName: String,
+    ): DataResult<AuthUser> = signInWithGoogleStub()
+
+    override suspend fun requestPasswordReset(email: String): DataResult<Unit> =
+        DataResult.Success(Unit)
+
+    override suspend fun resendVerification(): DataResult<Unit> = DataResult.Success(Unit)
+
+    private fun signInWithGoogleStub(): DataResult<AuthUser> {
         val user = TEST_USER
         _authState.value = AuthState.SignedIn(user, UserProfile.free(user.id))
         return DataResult.Success(user)

@@ -2,7 +2,6 @@ package com.aniruddha81.gaalifinderv2.core.error
 
 import android.database.sqlite.SQLiteException
 import com.aniruddha81.gaalifinderv2.R
-import io.appwrite.exceptions.AppwriteException
 import kotlinx.coroutines.CancellationException
 import java.io.FileNotFoundException
 import java.io.IOException
@@ -23,7 +22,7 @@ sealed class AppError(
     /** Device has no usable network connection. */
     data object NoConnection : AppError(R.string.error_no_connection)
 
-    /** Remote catalogue is not configured for this build (missing Appwrite credentials). */
+    /** Remote catalogue is not configured for this build (no API address). */
     data object RemoteNotConfigured : AppError(R.string.error_remote_not_configured)
 
     /** The request left the device but the server or transport failed. */
@@ -80,6 +79,24 @@ sealed class AppError(
     /** The server rejected the upload during its own re-validation of the limits. */
     data object UploadRejected : AppError(R.string.error_upload_rejected)
 
+    /** The server wants a verified email before it will accept an upload. */
+    data object EmailNotVerified : AppError(R.string.error_email_not_verified)
+
+    /** Email or password did not match an account. */
+    data object InvalidCredentials : AppError(R.string.error_invalid_credentials)
+
+    /** Sign-up with an email that already has an account. */
+    data object EmailTaken : AppError(R.string.error_email_taken)
+
+    /** The password is outside the server's length rules. */
+    data object WeakPassword : AppError(R.string.error_weak_password)
+
+    /** The email address is not well-formed. */
+    data object InvalidEmail : AppError(R.string.error_invalid_email)
+
+    /** The server is throttling this client; trying again later is the only fix. */
+    data object RateLimited : AppError(R.string.error_rate_limited)
+
     /** Anything we did not anticipate. */
     class Unexpected(cause: Throwable? = null) : AppError(R.string.error_unexpected, cause)
 }
@@ -96,12 +113,6 @@ fun Throwable.toAppError(): AppError {
         is AppErrorException -> error
         is UnknownHostException -> AppError.NoConnection
         is SocketTimeoutException -> AppError.Network(this)
-        is AppwriteException -> when (code) {
-            // 401/403: the session lacks permission for this resource — usually a Console-side
-            // permission or bucket fileSecurity setting, not a transport problem.
-            401, 403 -> AppError.Unexpected(this)
-            else -> AppError.Network(this)
-        }
         is FileNotFoundException -> AppError.ClipFileMissing
         is SQLiteException -> AppError.Database(this)
         is IOException -> if (isOutOfSpace()) AppError.OutOfSpace else AppError.Storage(this)

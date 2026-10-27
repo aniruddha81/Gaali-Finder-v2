@@ -9,9 +9,9 @@ import androidx.room.PrimaryKey
  * Cached row for one clip in the shared catalogue.
  *
  * Since v4 the table mirrors the `audio_metadata` collection rather than recording files the
- * user saved locally: the primary key is the Appwrite document id, and [cachedPath] stays null
+ * user saved locally: the primary key is the server's clip id, and [cachedPath] stays null
  * until the audio has actually been downloaded for playback. Keeping the mirror means the grid
- * renders instantly on launch and offline, while Appwrite stays authoritative.
+ * renders instantly on launch and offline, while the server stays authoritative.
  */
 @Entity(
     tableName = "audio_clips",

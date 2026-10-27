@@ -6,7 +6,7 @@ package com.aniruddha81.gaalifinderv2.core.media
  * The screen renders straight off this, so exactly one clip can ever appear to be playing —
  * previously each card tracked its own boolean and they could disagree.
  *
- * [clipId] is the Appwrite `audio_metadata` document id. It is a String rather than the old row
+ * [clipId] is the clip id from the shared catalogue. It is a String rather than the old row
  * id because clips are now identified by the server, and hashing one into a Long to fit the old
  * signature would let two clips collide into looking like the same one.
  */
